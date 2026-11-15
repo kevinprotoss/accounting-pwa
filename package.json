@@ -1,0 +1,21 @@
+{
+    "name": "accounting-pwa",
+    "private": true,
+    "version": "0.1.0",
+    "workspaces": ["server", "web"],
+    "scripts": {
+        "dev": "concurrently -n server,web -c blue,green \"npm run dev -w server\" \"npm run dev -w web\"",
+        "build": "npm run build -w web",
+        "start": "npm run start -w server",
+        "start:prod": "cross-env SERVE_WEB=1 npm run start -w server",
+        "migrate": "node scripts/migrate-from-electron.mjs"
+    },
+    "engines": {
+        "node": ">=20",
+        "npm": ">=10"
+    },
+    "devDependencies": {
+        "concurrently": "^9.0.1",
+        "cross-env": "^7.0.3"
+    }
+  }
