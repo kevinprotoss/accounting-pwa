@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from './lib/utils';
 import CustomersPage from './pages/CustomersPage';
 import ReceiptsPage from './pages/ReceiptsPage';
@@ -10,6 +11,7 @@ import CarsPage from './pages/CarsPage';
 import AuditPage from './pages/AuditPage';
 import CompanyPage from './pages/CompanyPage';
 import { ScanTaskProvider } from './providers/ScanTaskProvider';
+import LanguageSwitcher from './components/LanguageSwitcher';
 
 const navItems = [
   { key: 'customers', label: '客户' },
@@ -38,6 +40,7 @@ const moreItems = navItems.filter(
 export default function App() {
   const [active, setActive] = useState('customers');
   const [moreOpen, setMoreOpen] = useState(false);
+  const { t } = useTranslation();
 
   function select(key: string) {
     setActive(key);
@@ -61,7 +64,7 @@ export default function App() {
       case 'cars':
         return <CarsPage />;
       case 'audit':
-          return <AuditPage />;
+        return <AuditPage />;
       case 'company':
         return <CompanyPage />;
       default:
@@ -95,6 +98,12 @@ export default function App() {
               </button>
             ))}
           </nav>
+          <div className="px-2 py-3 border-t border-slate-200">
+            <div className="text-[10px] font-medium text-slate-500 mb-1.5 px-1">
+              {t('language.label')}
+            </div>
+            <LanguageSwitcher />
+          </div>
         </aside>
 
         {/* 主内容 */}
@@ -159,11 +168,16 @@ export default function App() {
                   </button>
                 ))}
               </div>
+              <div className="px-4 py-3 border-t border-slate-200">
+                <div className="text-xs font-medium text-slate-500 mb-2">
+                  {t('language.label')}
+                </div>
+                <LanguageSwitcher />
+              </div>
             </div>
           </div>
         )}
       </div>
     </ScanTaskProvider>
-    
   );
 }

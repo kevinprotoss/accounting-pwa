@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
-import { TIME_PRESETS, type ListFilter } from '../lib/listFilter';
+import { TIME_PRESETS, type ListFilter, type TimePreset } from '../lib/listFilter';
 
 type StatusOption = { value: string; label: string };
 
@@ -11,6 +12,28 @@ type Props = {
   statusOptions: StatusOption[];
   searchPlaceholder: string;
 };
+
+const lgPrimaryPresets: TimePreset[] = ['all', 'month', 'lastMonth', 'year'];
+const lgExtraPresets: TimePreset[] = ['today', 'week', 'custom'];
+
+function presetKey(p: TimePreset): string {
+  switch (p) {
+    case 'all':
+      return 'filter.all';
+    case 'today':
+      return 'filter.today';
+    case 'week':
+      return 'filter.week';
+    case 'month':
+      return 'filter.month';
+    case 'lastMonth':
+      return 'filter.last_month';
+    case 'year':
+      return 'filter.year';
+    case 'custom':
+      return 'filter.custom';
+  }
+}
 
 function FilterPanelContent({
   filter,
@@ -23,10 +46,14 @@ function FilterPanelContent({
   statusOptions: StatusOption[];
   onReset: () => void;
 }) {
+  const { t } = useTranslation();
+
   return (
     <>
       <div>
-        <div className="text-xs font-medium text-slate-600 mb-2">时间范围</div>
+        <div className="text-xs font-medium text-slate-600 mb-2">
+          {t('filter.custom')}
+        </div>
         <div className="flex flex-wrap gap-2">
           {TIME_PRESETS.map((p) => (
             <button
@@ -40,20 +67,22 @@ function FilterPanelContent({
                 }
               }}
               className={cn(
-                'h-9 px-3 text-sm rounded-md border',
+                'h-9 px-3 text-sm rounded-md border whitespace-nowrap',
                 filter.timePreset === p.value
                   ? 'bg-slate-900 text-white border-slate-900'
                   : 'bg-white text-slate-700 border-slate-300'
               )}
             >
-              {p.label}
+              {t(presetKey(p.value))}
             </button>
           ))}
         </div>
         {filter.timePreset === 'custom' && (
           <div className="mt-3 grid grid-cols-2 gap-2">
             <label className="block">
-              <span className="block text-xs text-slate-600 mb-1">开始</span>
+              <span className="block text-xs text-slate-600 mb-1">
+                {t('filter.start_date')}
+              </span>
               <input
                 type="date"
                 value={filter.customFrom}
@@ -62,7 +91,9 @@ function FilterPanelContent({
               />
             </label>
             <label className="block">
-              <span className="block text-xs text-slate-600 mb-1">结束</span>
+              <span className="block text-xs text-slate-600 mb-1">
+                {t('filter.end_date')}
+              </span>
               <input
                 type="date"
                 value={filter.customTo}
@@ -75,7 +106,9 @@ function FilterPanelContent({
       </div>
 
       <div>
-        <div className="text-xs font-medium text-slate-600 mb-2">状态</div>
+        <div className="text-xs font-medium text-slate-600 mb-2">
+          {t('filter.status')}
+        </div>
         <div className="flex flex-wrap gap-2">
           {statusOptions.map((o) => (
             <button
@@ -83,7 +116,7 @@ function FilterPanelContent({
               type="button"
               onClick={() => onChange({ status: o.value })}
               className={cn(
-                'h-9 px-3 text-sm rounded-md border',
+                'h-9 px-3 text-sm rounded-md border whitespace-nowrap',
                 filter.status === o.value
                   ? 'bg-slate-900 text-white border-slate-900'
                   : 'bg-white text-slate-700 border-slate-300'
@@ -100,7 +133,7 @@ function FilterPanelContent({
         onClick={onReset}
         className="w-full h-10 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100"
       >
-        重置为默认
+        {t('common.reset')}
       </button>
     </>
   );
@@ -113,21 +146,35 @@ export default function ListFilterBar({
   statusOptions,
   searchPlaceholder,
 }: Props) {
+  const { t } = useTranslation();
   const [input, setInput] = useState(filter.keyword);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [lgMoreOpen, setLgMoreOpen] = useState(false);
+  const lgMoreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setInput(filter.keyword);
   }, [filter.keyword]);
 
   useEffect(() => {
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       if (input !== filter.keyword) onChange({ keyword: input });
     }, 300);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [input]);
+
+  useEffect(() => {
+    if (!lgMoreOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (lgMoreRef.current && !lgMoreRef.current.contains(e.target as Node)) {
+        setLgMoreOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [lgMoreOpen]);
 
   const activeTags: { key: string; label: string; onRemove: () => void }[] = [];
   if (filter.timePreset !== 'month' && filter.timePreset !== 'all') {
@@ -141,15 +188,12 @@ export default function ListFilterBar({
         });
       }
     } else {
-      const p = TIME_PRESETS.find((x) => x.value === filter.timePreset);
-      if (p) {
-        activeTags.push({
-          key: 'time',
-          label: p.label,
-          onRemove: () =>
-            onChange({ timePreset: 'month', customFrom: '', customTo: '' }),
-        });
-      }
+      activeTags.push({
+        key: 'time',
+        label: t(presetKey(filter.timePreset)),
+        onRemove: () =>
+          onChange({ timePreset: 'month', customFrom: '', customTo: '' }),
+      });
     }
   }
   if (filter.status !== 'all') {
@@ -173,6 +217,8 @@ export default function ListFilterBar({
     });
   }
   const activeCount = activeTags.length;
+
+  const lgExtraActive = lgExtraPresets.includes(filter.timePreset);
 
   function resetAll() {
     setInput('');
@@ -199,14 +245,13 @@ export default function ListFilterBar({
             : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
         )}
       >
-        {p.label}
+        {t(presetKey(p.value))}
       </button>
     );
   }
 
   return (
     <div className="-mx-4 px-4 md:mx-0 md:px-0">
-      {/* 搜索行 */}
       <div className="sticky top-0 z-30 bg-slate-50 py-2 md:static md:bg-transparent md:py-0">
         <div className="flex gap-2 items-center">
           <div className="relative flex-1 min-w-[160px]">
@@ -222,16 +267,81 @@ export default function ListFilterBar({
                 type="button"
                 onClick={() => setInput('')}
                 className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-700"
-                aria-label="清空"
+                aria-label={t('common.remove')}
               >
                 ✕
               </button>
             )}
           </div>
 
-          {/* lg: 胶囊平铺 + 状态下拉（shrink-0，搜索框 flex-1 撑满） */}
-          <div className="hidden lg:flex gap-1.5 flex-wrap items-center shrink-0">
+          {/* xl: 全部胶囊平铺 */}
+          <div className="hidden xl:flex gap-1.5 items-center shrink-0">
             {TIME_PRESETS.map((p) => renderChip(p, true))}
+            <select
+              value={filter.status}
+              onChange={(e) => onChange({ status: e.target.value })}
+              className="h-9 rounded-md border border-slate-300 px-2 text-sm bg-white whitespace-nowrap"
+            >
+              {statusOptions.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* lg: 4 个常用胶囊 + Mehr 下拉 + 状态下拉 */}
+          <div className="hidden lg:flex xl:hidden gap-1.5 items-center shrink-0">
+            {TIME_PRESETS.filter((p) => lgPrimaryPresets.includes(p.value)).map(
+              (p) => renderChip(p, true)
+            )}
+            <div ref={lgMoreRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setLgMoreOpen((v) => !v)}
+                className={cn(
+                  'h-9 px-2.5 text-sm rounded-md border whitespace-nowrap flex items-center gap-1',
+                  lgExtraActive
+                    ? 'bg-slate-900 text-white border-slate-900'
+                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                )}
+              >
+                {t('filter.more')}
+                <span className="text-[10px]">▾</span>
+              </button>
+              {lgMoreOpen && (
+                <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-lg shadow-lg border border-slate-200 p-2 z-40 space-y-1">
+                  {TIME_PRESETS.filter((p) => lgExtraPresets.includes(p.value)).map(
+                    (p) => (
+                      <button
+                        key={p.value}
+                        type="button"
+                        onClick={() => {
+                          if (p.value === 'custom') {
+                            onChange({ timePreset: 'custom' });
+                          } else {
+                            onChange({
+                              timePreset: p.value,
+                              customFrom: '',
+                              customTo: '',
+                            });
+                          }
+                          setLgMoreOpen(false);
+                        }}
+                        className={cn(
+                          'w-full text-left h-9 px-2 text-sm rounded-md whitespace-nowrap',
+                          filter.timePreset === p.value
+                            ? 'bg-slate-900 text-white'
+                            : 'text-slate-700 hover:bg-slate-100'
+                        )}
+                      >
+                        {t(presetKey(p.value))}
+                      </button>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
             <select
               value={filter.status}
               onChange={(e) => onChange({ status: e.target.value })}
@@ -257,7 +367,7 @@ export default function ListFilterBar({
                   : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
               )}
             >
-              更多
+              {t('filter.more')}
               {activeCount > 0 && (
                 <span className="ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-white text-slate-900 text-[10px] font-medium">
                   {activeCount}
@@ -282,7 +392,7 @@ export default function ListFilterBar({
                     onClick={() => setPopoverOpen(false)}
                     className="w-full h-10 text-sm rounded-md bg-slate-900 text-white"
                   >
-                    关闭
+                    {t('filter.apply')}
                   </button>
                 </div>
               </>
@@ -300,7 +410,7 @@ export default function ListFilterBar({
                 : 'bg-white text-slate-700 border-slate-300'
             )}
           >
-            筛选
+            {t('filter.filter')}
             {activeCount > 0 && (
               <span className="ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-white text-slate-900 text-[10px] font-medium">
                 {activeCount}
@@ -310,11 +420,11 @@ export default function ListFilterBar({
         </div>
       </div>
 
-      {/* lg 下自定义日期输入 */}
+      {/* lg 和 xl 下自定义日期输入 */}
       {filter.timePreset === 'custom' && (
         <div className="hidden lg:flex items-center gap-2 pt-2">
           <label className="flex items-center gap-1.5 text-xs text-slate-600">
-            开始
+            {t('filter.start_date')}
             <input
               type="date"
               value={filter.customFrom}
@@ -323,7 +433,7 @@ export default function ListFilterBar({
             />
           </label>
           <label className="flex items-center gap-1.5 text-xs text-slate-600">
-            结束
+            {t('filter.end_date')}
             <input
               type="date"
               value={filter.customTo}
@@ -348,7 +458,7 @@ export default function ListFilterBar({
                   type="button"
                   onClick={tag.onRemove}
                   className="w-4 h-4 flex items-center justify-center rounded hover:bg-slate-300 text-slate-500"
-                  aria-label="移除筛选"
+                  aria-label={t('common.remove')}
                 >
                   ✕
                 </button>
@@ -360,7 +470,7 @@ export default function ListFilterBar({
             onClick={resetAll}
             className="ml-auto text-xs text-slate-600 hover:text-slate-900 underline"
           >
-            清除
+            {t('filter.clear_filter')}
           </button>
         </div>
       )}
@@ -386,7 +496,7 @@ export default function ListFilterBar({
               onClick={() => setDrawerOpen(false)}
               className="w-full h-11 text-sm rounded-md bg-slate-900 text-white"
             >
-              应用
+              {t('filter.apply')}
             </button>
           </div>
         </div>

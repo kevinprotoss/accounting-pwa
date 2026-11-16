@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useScanTasks } from '../providers/ScanTaskProvider';
 
 type Props = { onClick: () => void };
@@ -6,6 +7,7 @@ const RUNNING = ['submitting', 'pending', 'processing'];
 const FAILED = ['failed', 'consume_failed'];
 
 export default function ScanTaskBell({ onClick }: Props) {
+  const { t } = useTranslation();
   const { tasks } = useScanTasks();
   const runningCount = tasks.filter((t) => RUNNING.includes(t.status)).length;
   const failedCount = tasks.filter((t) => FAILED.includes(t.status)).length;
@@ -34,7 +36,7 @@ export default function ScanTaskBell({ onClick }: Props) {
           ? 'bg-slate-100 hover:bg-slate-200'
           : 'hover:bg-slate-100')
       }
-      aria-label="扫描任务"
+      aria-label={t('scan.tasks_title')}
     >
       <svg
         viewBox="0 0 24 24"
