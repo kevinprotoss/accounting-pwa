@@ -41,7 +41,11 @@ export default async function receiptsRoutes(app) {
             SELECT 1 FROM goods_issue_items gi
             JOIN goods_receipt_items ri ON gi.receipt_item_id = ri.id
             WHERE ri.receipt_id = r.id
-          ) AS is_used
+          ) AS is_used,
+          EXISTS (
+            SELECT 1 FROM scan_jobs sj
+            WHERE sj.record_type = 'goods_receipts' AND sj.record_id = r.id
+          ) AS needs_review
          FROM goods_receipts r
          ORDER BY r.date DESC, r.id DESC`
       )

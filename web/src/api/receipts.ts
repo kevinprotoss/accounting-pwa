@@ -33,6 +33,7 @@ export type ReceiptSummary = {
   gross_total: number;
   is_used: number;
   remarks: string | null;
+  needs_review: number;
 };
 
 export type ReceiptInput = {

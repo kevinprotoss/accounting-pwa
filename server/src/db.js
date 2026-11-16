@@ -191,6 +191,25 @@ db.exec(`
     value TEXT
   );
 
+  CREATE TABLE IF NOT EXISTS scan_jobs (
+    scan_id TEXT PRIMARY KEY,
+    remote_scan_id TEXT,
+    target_type TEXT NOT NULL,
+    image_paths TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'submitting',
+    error_message TEXT,
+    record_type TEXT,
+    record_id INTEGER,
+    raw_result TEXT,
+    consumed_at TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_scan_jobs_status ON scan_jobs(status);
+  CREATE INDEX IF NOT EXISTS idx_scan_jobs_remote ON scan_jobs(remote_scan_id);
+  CREATE INDEX IF NOT EXISTS idx_scan_jobs_record ON scan_jobs(record_type, record_id);
+
   CREATE VIEW IF NOT EXISTS current_stock AS
   SELECT
     ri.id AS receipt_item_id,

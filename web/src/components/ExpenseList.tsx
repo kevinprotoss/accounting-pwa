@@ -12,6 +12,9 @@ import {
 import ActionMenu, { type Action } from './ActionMenu';
 import ConfirmDialog from './ConfirmDialog';
 import ListFilterBar from './ListFilterBar';
+import ScanTaskBell from './ScanTaskBell';
+import ScanTaskDrawer from './ScanTaskDrawer';
+import ScanUploadDialog from './ScanUploadDialog';
 
 type Props = {
   filter: ListFilter;
@@ -61,6 +64,8 @@ export default function ExpenseList({
   });
 
   const [deleting, setDeleting] = useState<Expense | null>(null);
+  const [scanDialogOpen, setScanDialogOpen] = useState(false);
+  const [taskDrawerOpen, setTaskDrawerOpen] = useState(false);
 
   const filtered = useMemo(
     () => filterItems(data, filter, expenseMatchKeyword, expenseMatchStatus),
@@ -120,16 +125,38 @@ export default function ExpenseList({
         searchPlaceholder="搜索分类、描述、发票号、备注..."
       />
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm text-slate-500 shrink-0">
           {isLoading ? '加载中…' : `共 ${filtered.length} 条支出`}
         </p>
-        <button
-          onClick={onCreate}
-          className="h-11 px-4 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800"
-        >
-          + 新建支出
-        </button>
+        <div className="flex items-center gap-1.5 md:gap-2">
+          <button
+            onClick={() => setScanDialogOpen(true)}
+            className="h-11 px-3 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center gap-1.5"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-4 h-4"
+            >
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+              <circle cx="12" cy="13" r="3" />
+            </svg>
+            <span className="hidden sm:inline">扫描账单</span>
+          </button>
+          <ScanTaskBell onClick={() => setTaskDrawerOpen(true)} />
+          <button
+            onClick={onCreate}
+            className="h-11 px-4 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800"
+          >
+            <span className="hidden sm:inline">+ 新建支出</span>
+            <span className="sm:hidden">+ 新建</span>
+          </button>
+        </div>
       </div>
 
       {error && <p className="text-sm text-red-600">加载失败：{String(error)}</p>}
@@ -207,7 +234,14 @@ export default function ExpenseList({
                         className={`grid ${GRID_COLS} border-t border-slate-100 hover:bg-slate-50 cursor-pointer text-sm`}
                       >
                         <div role="cell" className="px-3 py-2 whitespace-nowrap">
-                          {e.date}
+                          <div className="flex items-center gap-1.5">
+                            <span>{e.date}</span>
+                            {e.needs_review === 1 && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
+                                待核对
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div role="cell" className="px-3 py-2 min-w-0">
                           <div className="truncate" title={e.category ?? ''}>
@@ -301,6 +335,11 @@ export default function ExpenseList({
                                   销项
                                 </span>
                               )}
+                              {e.needs_review === 1 && (
+                                <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
+                                  待核对
+                                </span>
+                              )}
                             </div>
                             <div className="text-xs text-slate-500 mt-1 truncate">
                               {e.date} · {e.description ?? '—'}
@@ -331,6 +370,17 @@ export default function ExpenseList({
           </div>
         </>
       )}
+
+      <ScanUploadDialog
+        open={scanDialogOpen}
+        targetType="expense"
+        onClose={() => setScanDialogOpen(false)}
+        onUploaded={() => setScanDialogOpen(false)}
+      />
+      <ScanTaskDrawer
+        open={taskDrawerOpen}
+        onClose={() => setTaskDrawerOpen(false)}
+      />
 
       <ConfirmDialog
         open={!!deleting}

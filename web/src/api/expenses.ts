@@ -14,6 +14,7 @@ export type Expense = {
   remarks: string | null;
   created_at?: string;
   updated_at?: string;
+  needs_review: number;
 };
 
 export type ExpenseInput = {

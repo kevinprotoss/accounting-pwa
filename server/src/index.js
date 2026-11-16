@@ -15,6 +15,8 @@ import expensesRoutes from './routes/expenses.js';
 import carsRoutes from './routes/cars.js';
 import auditRoutes from './routes/audit.js';
 import attachmentsRoutes from './routes/attachments.js';
+import scansRoutes from './routes/scans.js';
+import { startScanConsumer } from './services/scan-consumer.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = Fastify({ logger: true });
@@ -38,6 +40,7 @@ app.register(expensesRoutes, { prefix: '/api/expenses' });
 app.register(carsRoutes, { prefix: '/api/cars' });
 app.register(auditRoutes, { prefix: '/api/audit' });
 app.register(attachmentsRoutes, { prefix: '/api/attachments' });
+app.register(scansRoutes, { prefix: '/api/scans' });
 
 if (process.env.SERVE_WEB === '1') {
   const webDist = path.join(__dirname, '..', '..', 'web', 'dist');
@@ -57,7 +60,20 @@ if (process.env.SERVE_WEB === '1') {
 
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || '0.0.0.0';
+const sslCert = process.env.SSL_CERTFILE;
+const sslKey = process.env.SSL_KEYFILE;
+const useHttps = sslCert && sslKey && fs.existsSync(sslCert) && fs.existsSync(sslKey);
 
-app.listen({ port, host }).then(() => {
-  app.log.info(`Server on http://${host}:${port}`);
+const listenOptions = { port, host };
+if (useHttps) {
+  listenOptions.https = {
+    cert: fs.readFileSync(sslCert),
+    key: fs.readFileSync(sslKey),
+  };
+}
+
+app.listen(listenOptions).then(() => {
+  const protocol = useHttps ? 'https' : 'http';
+  app.log.info(`Server on ${protocol}://${host}:${port}`);
+  startScanConsumer(3000);
 });

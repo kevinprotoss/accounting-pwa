@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { receiptsApi, type ReceiptInput, type ReceiptItem } from '../api/receipts';
 import { formatMoney } from '../lib/utils';
 import AttachmentUploader from './AttachmentUploader';
+import ScanReviewBanner from './ScanReviewBanner';
+import { scansApi } from '../api/scans';
 
 const inputClass =
   'w-full rounded-md border border-slate-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-900';
@@ -114,7 +116,16 @@ export default function ReceiptForm({ receiptId, onClose, onSaved }: Props) {
   const saveMutation = useMutation({
     mutationFn: (input: ReceiptInput) =>
       isEdit ? receiptsApi.update(receiptId!, input) : receiptsApi.create(input),
-    onSuccess: onSaved,
+    onSuccess: async () => {
+      if (isEdit && receiptId) {
+        try {
+          await scansApi.review('goods_receipts', receiptId);
+        } catch {
+          // 清理失败不影响主流程
+        }
+      }
+      onSaved();
+    },
     onError: (err) => setError(String(err)),
   });
 
@@ -236,6 +247,9 @@ export default function ReceiptForm({ receiptId, onClose, onSaved }: Props) {
 
       <form id="receipt-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
+          {isEdit && (
+            <ScanReviewBanner recordType="goods_receipts" recordId={receiptId} />
+          )}
           {hasUsedItems && (
             <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
               ⚠ 此进货单的某些明细已被销售单引用，这些明细无法修改数量、价格、税率，也无法删除。只能修改其他字段或添加新明细。

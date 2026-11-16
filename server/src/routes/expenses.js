@@ -27,7 +27,15 @@ function normalize(body) {
 export default async function expensesRoutes(app) {
   app.get('/', async () => {
     return db
-      .prepare('SELECT * FROM other_expenses ORDER BY date DESC, id DESC')
+      .prepare(
+        `SELECT e.*,
+          EXISTS (
+            SELECT 1 FROM scan_jobs sj
+            WHERE sj.record_type = 'other_expenses' AND sj.record_id = e.id
+          ) AS needs_review
+         FROM other_expenses e
+         ORDER BY e.date DESC, e.id DESC`
+      )
       .all();
   });
 

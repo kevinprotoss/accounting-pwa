@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { expensesApi, type ExpenseInput } from '../api/expenses';
 import { formatMoney } from '../lib/utils';
 import AttachmentUploader from './AttachmentUploader';
+import ScanReviewBanner from './ScanReviewBanner';
+import { scansApi } from '../api/scans';
 
 const inputClass =
   'w-full rounded-md border border-slate-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-900';
@@ -98,7 +100,7 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
 
   function handleRateChange(value: string) {
     setTaxRate(value);
-    const n = parseFloat(netAmount) || 0;
+    const n = parseFloat(netAmount) || 0; 
     const r = parseFloat(value) || 0;
     setGrossAmount((n * (1 + r / 100)).toFixed(2));
   }
@@ -116,7 +118,14 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
   const saveMutation = useMutation({
     mutationFn: (input: ExpenseInput) =>
       isEdit ? expensesApi.update(expenseId!, input) : expensesApi.create(input),
-    onSuccess: onSaved,
+    onSuccess: async () => {
+      if (isEdit && expenseId) {
+        try {
+          await scansApi.review('other_expenses', expenseId);
+        } catch {}
+      }
+      onSaved();
+    },
     onError: (err) => setError(String(err)),
   });
 
@@ -169,6 +178,9 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
 
       <form id="expense-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-4">
+          {isEdit && (
+            <ScanReviewBanner recordType="other_expenses" recordId={expenseId} />
+          )}
           <div className="rounded-lg border border-slate-200 bg-white p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
             <label className="block">
               <span className="block text-xs font-medium text-slate-600 mb-1">日期 *</span>
