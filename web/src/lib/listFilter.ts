@@ -23,15 +23,34 @@ export const defaultFilter: ListFilter = {
   status: 'all',
 };
 
-export const TIME_PRESETS: { value: TimePreset; label: string }[] = [
-  { value: 'all', label: '全部' },
-  { value: 'today', label: '今天' },
-  { value: 'week', label: '本周' },
-  { value: 'month', label: '本月' },
-  { value: 'lastMonth', label: '上月' },
-  { value: 'year', label: '本年' },
-  { value: 'custom', label: '自定义' },
+export const TIME_PRESETS: TimePreset[] = [
+  'all',
+  'today',
+  'week',
+  'month',
+  'lastMonth',
+  'year',
+  'custom',
 ];
+
+export function presetI18nKey(p: TimePreset): string {
+  switch (p) {
+    case 'all':
+      return 'filter.all';
+    case 'today':
+      return 'filter.today';
+    case 'week':
+      return 'filter.week';
+    case 'month':
+      return 'filter.month';
+    case 'lastMonth':
+      return 'filter.last_month';
+    case 'year':
+      return 'filter.year';
+    case 'custom':
+      return 'filter.custom';
+  }
+}
 
 function toDateString(d: Date): string {
   const y = d.getFullYear();
@@ -87,29 +106,30 @@ export function isDefaultFilter(filter: ListFilter): boolean {
   );
 }
 
+export type FilterSummary = {
+  timePreset: TimePreset;
+  customFrom: string;
+  customTo: string;
+  statusLabel: string | null;
+  keyword: string;
+};
+
 export function filterSummary(
   filter: ListFilter,
   statusOptions: { value: string; label: string }[]
-): string {
-  const parts: string[] = [];
-  const preset = TIME_PRESETS.find((p) => p.value === filter.timePreset);
-  if (preset && preset.value !== 'all') {
-    if (preset.value === 'custom') {
-      if (filter.customFrom && filter.customTo) {
-        parts.push(`${filter.customFrom} ~ ${filter.customTo}`);
-      }
-    } else {
-      parts.push(preset.label);
-    }
-  }
+): FilterSummary {
+  let statusLabel: string | null = null;
   if (filter.status !== 'all') {
     const s = statusOptions.find((o) => o.value === filter.status);
-    if (s) parts.push(s.label);
+    if (s) statusLabel = s.label;
   }
-  if (filter.keyword.trim()) {
-    parts.push(`"${filter.keyword.trim()}"`);
-  }
-  return parts.length > 0 ? parts.join(' · ') : '全部';
+  return {
+    timePreset: filter.timePreset,
+    customFrom: filter.customFrom,
+    customTo: filter.customTo,
+    statusLabel,
+    keyword: filter.keyword.trim(),
+  };
 }
 
 export function groupByMonth<T extends { date: string }>(
@@ -126,9 +146,13 @@ export function groupByMonth<T extends { date: string }>(
     .map(([month, items]) => ({ month, items }));
 }
 
-export function formatMonthLabel(month: string): string {
+export function formatMonthLabel(month: string, locale: string): string {
   const [y, m] = month.split('-');
-  return `${y}年${parseInt(m, 10)}月`;
+  const date = new Date(Number(y), parseInt(m, 10) - 1, 1);
+  return new Intl.DateTimeFormat(locale, {
+    year: 'numeric',
+    month: 'long',
+  }).format(date);
 }
 
 export function currentMonth(): string {

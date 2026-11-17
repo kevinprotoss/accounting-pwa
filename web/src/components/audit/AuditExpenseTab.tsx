@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { auditApi, type AuditExpense } from '../../api/audit';
 import { monthsAgo, todayStr } from '../../lib/listFilter';
 import { formatMoney } from '../../lib/utils';
@@ -9,6 +10,7 @@ const inputClass =
   'w-full h-10 rounded-md border border-slate-300 px-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-900';
 
 export default function AuditExpenseTab() {
+  const { t } = useTranslation();
   const [from, setFrom] = useState(monthsAgo(3));
   const [to, setTo] = useState(todayStr());
   const [category, setCategory] = useState('');
@@ -40,16 +42,22 @@ export default function AuditExpenseTab() {
       <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           <label className="block">
-            <span className="block text-xs font-medium text-slate-600 mb-1">起始日期</span>
+            <span className="block text-xs font-medium text-slate-600 mb-1">
+              {t('filter.start_date')}
+            </span>
             <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inputClass} />
           </label>
           <label className="block">
-            <span className="block text-xs font-medium text-slate-600 mb-1">结束日期</span>
+            <span className="block text-xs font-medium text-slate-600 mb-1">
+              {t('filter.end_date')}
+            </span>
             <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inputClass} />
           </label>
           <label className="block">
-            <span className="block text-xs font-medium text-slate-600 mb-1">分类</span>
-            <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="模糊匹配" className={inputClass} />
+            <span className="block text-xs font-medium text-slate-600 mb-1">
+              {t('audit.expense_search_category')}
+            </span>
+            <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder={t('audit.fuzzy_match')} className={inputClass} />
           </label>
         </div>
         <div className="flex gap-2">
@@ -58,7 +66,7 @@ export default function AuditExpenseTab() {
             onClick={() => setPage(0)}
             className="h-10 px-4 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800"
           >
-            搜索
+            {t('common.search')}
           </button>
           <button
             type="button"
@@ -70,20 +78,24 @@ export default function AuditExpenseTab() {
             }}
             className="h-10 px-4 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100"
           >
-            重置
+            {t('common.reset')}
           </button>
         </div>
       </div>
 
       <p className="text-sm text-slate-500">
-        {isLoading ? '加载中…' : `共 ${total} 条支出`}
+        {isLoading ? t('common.loading') : t('audit.expense_count', { count: total })}
       </p>
 
-      {error && <p className="text-sm text-red-600">加载失败：{String(error)}</p>}
+      {error && (
+        <p className="text-sm text-red-600">
+          {t('message.load_failed', { error: String(error) })}
+        </p>
+      )}
 
       {!isLoading && total === 0 && (
         <div className="rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-500">
-          没有匹配条件的支出。
+          {t('audit.expense_empty')}
         </div>
       )}
 
@@ -93,12 +105,12 @@ export default function AuditExpenseTab() {
             <table className="min-w-full text-sm">
               <thead className="bg-slate-100 text-slate-600">
                 <tr>
-                  <th className="px-3 py-2 text-left">日期</th>
-                  <th className="px-3 py-2 text-left">分类</th>
-                  <th className="px-3 py-2 text-left">描述</th>
-                  <th className="px-3 py-2 text-right">净额</th>
-                  <th className="px-3 py-2 text-right">税额</th>
-                  <th className="px-3 py-2 text-center w-24">操作</th>
+                  <th className="px-3 py-2 text-left">{t('audit.expense_date')}</th>
+                  <th className="px-3 py-2 text-left">{t('audit.expense_category')}</th>
+                  <th className="px-3 py-2 text-left">{t('audit.expense_description')}</th>
+                  <th className="px-3 py-2 text-right">{t('audit.expense_net_amount')}</th>
+                  <th className="px-3 py-2 text-right">{t('audit.expense_tax_amount')}</th>
+                  <th className="px-3 py-2 text-center w-24">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -115,7 +127,7 @@ export default function AuditExpenseTab() {
                         onClick={() => setSelected(it)}
                         className="h-8 px-2 text-xs rounded border border-slate-300 text-slate-700 hover:bg-slate-100 whitespace-nowrap"
                       >
-                        查看详情
+                        {t('audit.expense_action_view_detail')}
                       </button>
                     </td>
                   </tr>
@@ -132,14 +144,14 @@ export default function AuditExpenseTab() {
                   {it.date} · {it.description ?? '—'}
                 </div>
                 <div className="text-sm text-slate-700 mt-1">
-                  净额 {formatMoney(it.net_amount)} € · 税 {formatMoney(it.input_tax)} €
+                  {t('audit.expense_net_amount')} {formatMoney(it.net_amount)} € · {t('audit.expense_tax_amount')} {formatMoney(it.input_tax)} €
                 </div>
                 <button
                   type="button"
                   onClick={() => setSelected(it)}
                   className="mt-2 h-9 px-3 text-xs rounded border border-slate-300 text-slate-700 hover:bg-slate-100"
                 >
-                  查看详情
+                  {t('audit.expense_action_view_detail')}
                 </button>
               </li>
             ))}
@@ -153,7 +165,7 @@ export default function AuditExpenseTab() {
                 disabled={page === 0}
                 className="h-10 px-4 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                上一页
+                {t('common.prev_page')}
               </button>
               <span className="text-sm text-slate-500">
                 {page + 1} / {totalPages}
@@ -164,7 +176,7 @@ export default function AuditExpenseTab() {
                 disabled={page >= totalPages - 1}
                 className="h-10 px-4 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                下一页
+                {t('common.next_page')}
               </button>
             </div>
           )}
@@ -175,30 +187,38 @@ export default function AuditExpenseTab() {
 }
 
 function ExpenseDetail({ expense, onClose }: { expense: AuditExpense; onClose: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="fixed inset-0 z-40 bg-slate-50 flex flex-col md:left-56">
       <header className="shrink-0 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
-        <h2 className="text-base font-semibold truncate">支出详情</h2>
+        <h2 className="text-base font-semibold truncate">
+          {t('audit.expense_detail_title')}
+        </h2>
         <button onClick={onClose} className="h-11 px-3 text-sm text-slate-600 hover:underline shrink-0">
-          返回列表
+          {t('common.back_to_list')}
         </button>
       </header>
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-4">
           <section className="rounded-lg border border-slate-200 bg-white p-4">
             <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-              <Row label="日期" value={expense.date} />
-              <Row label="分类" value={expense.category ?? '—'} />
-              <Row label="描述" value={expense.description ?? '—'} />
-              <Row label="类型" value={expense.is_output_tax ? '销项' : '进项'} />
-              <Row label="净额" value={`${formatMoney(expense.net_amount)} €`} />
-              <Row label="税率" value={`${expense.tax_rate}%`} />
-              <Row label="税额" value={`${formatMoney(expense.input_tax)} €`} />
-              <Row label="供应商发票号" value={expense.supplier_invoice ?? '—'} />
+              <Row label={t('audit.expense_date')} value={expense.date} />
+              <Row label={t('audit.expense_category')} value={expense.category ?? '—'} />
+              <Row label={t('audit.expense_description')} value={expense.description ?? '—'} />
+              <Row
+                label={t('audit.expense_type')}
+                value={expense.is_output_tax ? t('audit.expense_type_output') : t('audit.expense_type_input')}
+              />
+              <Row label={t('audit.expense_net_amount')} value={`${formatMoney(expense.net_amount)} €`} />
+              <Row label={t('audit.expense_tax_rate')} value={`${expense.tax_rate}%`} />
+              <Row label={t('audit.expense_input_tax')} value={`${formatMoney(expense.input_tax)} €`} />
+              <Row label={t('audit.expense_supplier_invoice')} value={expense.supplier_invoice ?? '—'} />
             </dl>
             {expense.remarks && (
               <div className="mt-3 pt-3 border-t border-slate-100">
-                <div className="text-xs font-medium text-slate-500 mb-1">备注</div>
+                <div className="text-xs font-medium text-slate-500 mb-1">
+                  {t('audit.expense_remarks')}
+                </div>
                 <div className="text-sm text-slate-700">{expense.remarks}</div>
               </div>
             )}

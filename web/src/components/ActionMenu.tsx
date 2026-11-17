@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 
 export type Action = {
@@ -22,6 +23,7 @@ type Props = {
 };
 
 export default function ActionMenu({ actions, contextLabel }: Props) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -96,14 +98,13 @@ export default function ActionMenu({ actions, contextLabel }: Props) {
           setOpen((v) => !v);
         }}
         className="w-11 h-11 flex items-center justify-center rounded-md text-slate-600 hover:bg-slate-100 active:bg-slate-200"
-        aria-label="更多操作"
+        aria-label={t('common.actions')}
         aria-haspopup="menu"
         aria-expanded={open}
       >
         <span className="text-lg leading-none">⋯</span>
       </button>
 
-      {/* 手机 bottom sheet */}
       {open &&
         createPortal(
           <>
@@ -147,7 +148,7 @@ export default function ActionMenu({ actions, contextLabel }: Props) {
                   onClick={() => setOpen(false)}
                   className="w-full px-4 py-3.5 text-sm text-slate-500 text-left border-t border-slate-100 mt-2 hover:bg-slate-50 active:bg-slate-100"
                 >
-                  取消
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>
@@ -155,7 +156,6 @@ export default function ActionMenu({ actions, contextLabel }: Props) {
           document.body
         )}
 
-      {/* 桌面下拉 */}
       {open &&
         coords &&
         createPortal(

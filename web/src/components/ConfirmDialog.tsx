@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   open: boolean;
@@ -16,13 +17,14 @@ export default function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = '确定',
-  cancelLabel = '取消',
+  confirmLabel,
+  cancelLabel,
   danger = false,
   loading = false,
   onConfirm,
   onCancel,
 }: Props) {
+  const { t } = useTranslation();
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export default function ConfirmDialog({
           disabled={loading}
           className="h-11 px-4 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-60"
         >
-          {cancelLabel}
+          {cancelLabel ?? t('common.cancel')}
         </button>
         <button
           type="button"
@@ -61,7 +63,7 @@ export default function ConfirmDialog({
               : 'h-11 px-4 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-60'
           }
         >
-          {loading ? '处理中…' : confirmLabel}
+          {loading ? t('common.processing') : confirmLabel ?? t('common.confirm')}
         </button>
       </div>
     </dialog>

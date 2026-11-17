@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { issuesApi, type IssueInput } from '../api/issues';
 import { customersApi } from '../api/customers';
 import { stockApi, type StockItem } from '../api/stock';
@@ -49,11 +50,6 @@ function generateIssueNumber() {
   return `SI-${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}-${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}`;
 }
 
-const statusOptions = [
-  { value: 'open', label: '待付款' },
-  { value: 'paid', label: '已付款' },
-];
-
 const TAX_PRESETS = ['19', '7', '0'];
 
 type BatchSelectorProps = {
@@ -63,6 +59,7 @@ type BatchSelectorProps = {
 };
 
 function BatchSelector({ value, stock, onChange }: BatchSelectorProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -98,7 +95,8 @@ function BatchSelector({ value, stock, onChange }: BatchSelectorProps) {
         <div className="flex-1 min-w-0">
           <div className="text-sm font-medium truncate">{selected.product_name}</div>
           <div className="text-xs text-slate-500 truncate">
-            剩余 {selected.remaining_qty} · 进货 {selected.receipt_date}
+            {t('issue.batch_remaining', { qty: selected.remaining_qty })} ·{' '}
+            {t('issue.batch_receipt_date', { date: selected.receipt_date })}
           </div>
         </div>
         <button
@@ -106,7 +104,7 @@ function BatchSelector({ value, stock, onChange }: BatchSelectorProps) {
           onClick={() => setOpen(true)}
           className="shrink-0 h-9 px-2 text-xs rounded border border-slate-300 text-slate-700 hover:bg-slate-100"
         >
-          更换
+          {t('issue.change_batch')}
         </button>
       </div>
     );
@@ -116,7 +114,7 @@ function BatchSelector({ value, stock, onChange }: BatchSelectorProps) {
     <div ref={wrapperRef} className="relative">
       <input
         className={cellInput}
-        placeholder="搜索批次..."
+        placeholder={t('issue.search_batch')}
         value={search}
         onChange={(e) => {
           setSearch(e.target.value);
@@ -127,7 +125,9 @@ function BatchSelector({ value, stock, onChange }: BatchSelectorProps) {
       {open && (
         <div className="absolute z-30 mt-1 w-full max-h-64 overflow-y-auto bg-white border border-slate-200 rounded-md shadow-lg">
           {filtered.length === 0 && (
-            <div className="px-3 py-3 text-sm text-slate-500">无匹配批次</div>
+            <div className="px-3 py-3 text-sm text-slate-500">
+              {t('issue.no_batches')}
+            </div>
           )}
           {filtered.map((s) => (
             <button
@@ -142,7 +142,9 @@ function BatchSelector({ value, stock, onChange }: BatchSelectorProps) {
             >
               <div className="font-medium truncate">{s.product_name}</div>
               <div className="text-xs text-slate-500 truncate">
-                剩余 {s.remaining_qty} · 进货 {s.receipt_date} · {s.supplier ?? '—'}
+                {t('issue.batch_remaining', { qty: s.remaining_qty })} ·{' '}
+                {t('issue.batch_receipt_date', { date: s.receipt_date })} ·{' '}
+                {s.supplier ?? '—'}
               </div>
             </button>
           ))}
@@ -159,6 +161,7 @@ type Props = {
 };
 
 export default function IssueForm({ issueId, onClose, onSaved }: Props) {
+  const { t } = useTranslation();
   const isEdit = issueId !== null;
   const queryClient = useQueryClient();
 
@@ -189,6 +192,11 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
     staleTime: 0,
     refetchOnWindowFocus: true,
   });
+
+  const statusOptions = [
+    { value: 'open', label: t('issue.status_open') },
+    { value: 'paid', label: t('issue.status_paid') },
+  ];
 
   const stockMap = useMemo(() => {
     const map = new Map<number, StockItem>();
@@ -413,26 +421,32 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
       .filter((it) => it.receipt_item_id && it.quantity > 0);
 
     if (!issueNumber.trim()) {
-      setError('请填写单号');
+      setError(t('issue.number_required'));
       return;
     }
     if (!invoiceNumber.trim()) {
-      setError('发票号尚未生成，请刷新后重试');
+      setError(t('issue.invoice_not_ready'));
       return;
     }
     if (cleanItems.length === 0) {
-      setError('至少需要一条有效明细（选择批次和数量）');
+      setError(t('issue.items_required'));
       return;
     }
 
     for (const it of cleanItems) {
       const s = stockMap.get(it.receipt_item_id);
       if (!s) {
-        setError('存在无效的批次选择，请重新选择');
+        setError(t('issue.invalid_batch'));
         return;
       }
       if (it.quantity > s.remaining_qty + 1e-9) {
-        setError(`「${s.product_name}」库存不足，可用 ${s.remaining_qty}，请求 ${it.quantity}`);
+        setError(
+          t('issue.insufficient_stock', {
+            name: s.product_name,
+            available: s.remaining_qty,
+            requested: it.quantity,
+          })
+        );
         return;
       }
     }
@@ -473,7 +487,7 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
   if (isEdit && loadingIssue) {
     return (
       <div className="fixed inset-0 z-40 bg-slate-50 flex items-center justify-center md:left-56">
-        <p className="text-sm text-slate-500">加载中…</p>
+        <p className="text-sm text-slate-500">{t('common.loading')}</p>
       </div>
     );
   }
@@ -481,12 +495,14 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
   if (isEdit && loadIssueError) {
     return (
       <div className="fixed inset-0 z-40 bg-slate-50 flex flex-col items-center justify-center gap-3 md:left-56">
-        <p className="text-sm text-red-600">加载失败：{String(loadIssueError)}</p>
+        <p className="text-sm text-red-600">
+          {t('message.load_failed', { error: String(loadIssueError) })}
+        </p>
         <button
           onClick={onClose}
           className="h-11 px-4 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100"
         >
-          返回列表
+          {t('common.back_to_list')}
         </button>
       </div>
     );
@@ -496,7 +512,7 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
     <div className="fixed inset-0 z-40 bg-slate-50 flex flex-col md:left-56">
       <header className="shrink-0 bg-white border-b border-slate-200 px-4 py-3">
         <h2 className="text-base font-semibold">
-          {isEdit ? '编辑销售单' : '新建销售单'}
+          {isEdit ? t('issue.edit') : t('issue.new')}
         </h2>
       </header>
 
@@ -505,7 +521,9 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
           {/* 基本信息 */}
           <div className="rounded-lg border border-slate-200 bg-white p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
             <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">单号 *</span>
+              <span className="block text-xs font-medium text-slate-600 mb-1">
+                {t('issue.number')} *
+              </span>
               <input
                 className={inputClass}
                 value={issueNumber}
@@ -514,7 +532,9 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
               />
             </label>
             <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">日期 *</span>
+              <span className="block text-xs font-medium text-slate-600 mb-1">
+                {t('issue.date')} *
+              </span>
               <input
                 type="date"
                 className={inputClass}
@@ -525,7 +545,7 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
             </label>
             <label className="block md:col-span-2">
               <span className="block text-xs font-medium text-slate-600 mb-1">
-                发票号（自动生成，不可修改）
+                {t('issue.invoice_number_auto')}
               </span>
               <input
                 className={`${inputClass} bg-slate-100 text-slate-700`}
@@ -538,15 +558,19 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
 
           {/* 客户 */}
           <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-slate-700">客户</h3>
+            <h3 className="text-sm font-semibold text-slate-700">
+              {t('issue.customer_section')}
+            </h3>
             <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">选择已有客户</span>
+              <span className="block text-xs font-medium text-slate-600 mb-1">
+                {t('issue.select_customer')}
+              </span>
               <select
                 className={inputClass}
                 value={customerId}
                 onChange={(e) => handleCustomerChange(e.target.value)}
               >
-                <option value="">— 不选择 / 手动输入 —</option>
+                <option value="">{t('issue.no_customer_option')}</option>
                 {customers.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -555,7 +579,9 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
               </select>
             </label>
             <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">客户名称</span>
+              <span className="block text-xs font-medium text-slate-600 mb-1">
+                {t('issue.customer_name')}
+              </span>
               <input
                 className={inputClass}
                 value={customerName}
@@ -563,7 +589,9 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
               />
             </label>
             <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">客户地址</span>
+              <span className="block text-xs font-medium text-slate-600 mb-1">
+                {t('issue.customer_address')}
+              </span>
               <textarea
                 className={inputClass}
                 rows={2}
@@ -572,7 +600,9 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
               />
             </label>
             <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">客户 USt-IdNr.</span>
+              <span className="block text-xs font-medium text-slate-600 mb-1">
+                {t('issue.customer_vat_id')}
+              </span>
               <input
                 className={inputClass}
                 value={customerVatId}
@@ -583,9 +613,13 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
 
           {/* 发货 */}
           <div className="rounded-lg border border-slate-200 bg-white p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-            <h3 className="text-sm font-semibold text-slate-700 md:col-span-2">发货</h3>
+            <h3 className="text-sm font-semibold text-slate-700 md:col-span-2">
+              {t('issue.shipping_section')}
+            </h3>
             <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">承运商</span>
+              <span className="block text-xs font-medium text-slate-600 mb-1">
+                {t('issue.carrier')}
+              </span>
               <input
                 className={inputClass}
                 value={carrier}
@@ -593,7 +627,9 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
               />
             </label>
             <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">跟踪号</span>
+              <span className="block text-xs font-medium text-slate-600 mb-1">
+                {t('issue.tracking_number')}
+              </span>
               <input
                 className={inputClass}
                 value={trackingNumber}
@@ -601,7 +637,9 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
               />
             </label>
             <label className="block md:col-span-2">
-              <span className="block text-xs font-medium text-slate-600 mb-1">发货日期</span>
+              <span className="block text-xs font-medium text-slate-600 mb-1">
+                {t('issue.shipping_date')}
+              </span>
               <input
                 type="date"
                 className={inputClass}
@@ -620,9 +658,13 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
                 checked={isExport}
                 onChange={(e) => handleExportChange(e.target.checked)}
               />
-              <span className="text-sm font-semibold text-slate-700">出口报关</span>
+              <span className="text-sm font-semibold text-slate-700">
+                {t('issue.export_section')}
+              </span>
               {isExport && (
-                <span className="text-xs text-slate-500">（明细税率自动设为 0%）</span>
+                <span className="text-xs text-slate-500">
+                  {t('issue.export_hint')}
+                </span>
               )}
             </label>
 
@@ -630,7 +672,9 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
                   <label className="block">
-                    <span className="block text-xs font-medium text-slate-600 mb-1">报关号</span>
+                    <span className="block text-xs font-medium text-slate-600 mb-1">
+                      {t('issue.customs_number')}
+                    </span>
                     <input
                       className={inputClass}
                       value={exportCustomsNumber}
@@ -638,7 +682,9 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
                     />
                   </label>
                   <label className="block">
-                    <span className="block text-xs font-medium text-slate-600 mb-1">报关日期</span>
+                    <span className="block text-xs font-medium text-slate-600 mb-1">
+                      {t('issue.customs_date')}
+                    </span>
                     <input
                       type="date"
                       className={inputClass}
@@ -647,7 +693,9 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
                     />
                   </label>
                   <label className="block">
-                    <span className="block text-xs font-medium text-slate-600 mb-1">出口地点</span>
+                    <span className="block text-xs font-medium text-slate-600 mb-1">
+                      {t('issue.export_location')}
+                    </span>
                     <input
                       className={inputClass}
                       value={exportLocation}
@@ -658,7 +706,7 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
                 <AttachmentUploader
                   paths={exportAttachments}
                   onChange={setExportAttachments}
-                  label="出口凭证（DHL 包裹单、MRN、AFD 等）"
+                  label={t('issue.export_attachments')}
                 />
               </>
             )}
@@ -667,21 +715,25 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
           {/* 明细 */}
           <div className="rounded-lg border border-slate-200 bg-white">
             <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-700">明细</h3>
+              <h3 className="text-sm font-semibold text-slate-700">
+                {t('issue.items_title')}
+              </h3>
               <button
                 type="button"
                 onClick={addItem}
                 className="h-10 px-3 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100"
               >
-                + 添加行
+                + {t('issue.add_row')}
               </button>
             </div>
 
             {loadingStock ? (
-              <div className="px-4 py-3 text-sm text-slate-500">加载库存…</div>
+              <div className="px-4 py-3 text-sm text-slate-500">
+                {t('issue.loading_stock')}
+              </div>
             ) : stock.length === 0 && items.every((it) => !it.receipt_item_id) ? (
               <div className="px-4 py-3 text-sm text-slate-500">
-                暂无可用库存，请先创建进货单。
+                {t('issue.stock_empty')}
               </div>
             ) : null}
 
@@ -695,7 +747,7 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
                   <div key={it.key} className="px-4 py-3 space-y-2">
                     <div className="flex items-start gap-2">
                       <div className="flex-1 min-w-0">
-                        <span className={labelClass}>商品批次</span>
+                        <span className={labelClass}>{t('issue.item_batch')}</span>
                         <BatchSelector
                           value={it.receipt_item_id}
                           stock={stock}
@@ -706,7 +758,7 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
                         type="button"
                         onClick={() => removeItem(it.key)}
                         className="shrink-0 w-11 h-11 mt-4 flex items-center justify-center rounded-md text-red-600 hover:bg-red-50 active:bg-red-100"
-                        aria-label="删除行"
+                        aria-label={t('common.remove')}
                       >
                         ✕
                       </button>
@@ -714,7 +766,7 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
 
                     <div className="grid grid-cols-2 gap-2">
                       <label className="block">
-                        <span className={labelClass}>数量</span>
+                        <span className={labelClass}>{t('issue.quantity')}</span>
                         <input
                           type="number"
                           step="0.01"
@@ -728,7 +780,7 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
                       </label>
                       <div>
                         <span className={labelClass}>
-                          税率%{isExport && <span className="text-slate-400 ml-1">(出口)</span>}
+                          {isExport ? t('issue.tax_rate_export') : t('issue.tax_rate')}
                         </span>
                         <input
                           type="number"
@@ -766,7 +818,7 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
 
                     <div className="grid grid-cols-2 gap-2">
                       <label className="block">
-                        <span className={labelClass}>净单价</span>
+                        <span className={labelClass}>{t('issue.net_unit_price')}</span>
                         <input
                           type="number"
                           step="0.01"
@@ -777,7 +829,7 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
                         />
                       </label>
                       <label className="block">
-                        <span className={labelClass}>含税单价</span>
+                        <span className={labelClass}>{t('issue.gross_unit_price')}</span>
                         <input
                           type="number"
                           step="0.01"
@@ -794,7 +846,7 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
                     </div>
 
                     <div className="text-right text-sm text-slate-600">
-                      <span className="text-slate-500">小计 </span>
+                      <span className="text-slate-500">{t('issue.subtotal')} </span>
                       <span className="font-medium">
                         {formatMoney(netLine)} / {formatMoney(grossLine)} €
                       </span>
@@ -806,16 +858,20 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
 
             <div className="px-4 py-3 border-t border-slate-200 text-sm space-y-1">
               <div className="flex justify-end gap-4">
-                <span className="text-slate-600 w-24 text-right">净额合计</span>
+                <span className="text-slate-600 w-24 text-right">
+                  {t('issue.total_net')}
+                </span>
                 <span className="w-28 text-right">{formatMoney(netSubtotal)} €</span>
               </div>
               <div className="flex justify-end gap-4">
-                <span className="text-slate-600 w-24 text-right">税额合计</span>
+                <span className="text-slate-600 w-24 text-right">
+                  {t('issue.total_tax')}
+                </span>
                 <span className="w-28 text-right">{formatMoney(taxSubtotal)} €</span>
               </div>
               <div className="flex justify-end gap-4">
                 <span className="text-slate-700 w-24 text-right font-semibold">
-                  含税合计
+                  {t('issue.total_gross')}
                 </span>
                 <span className="w-28 text-right font-semibold">
                   {formatMoney(grossSubtotal)} €
@@ -826,9 +882,13 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
 
           {/* 状态与付款 */}
           <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-slate-700">状态与付款</h3>
+            <h3 className="text-sm font-semibold text-slate-700">
+              {t('issue.status_section')}
+            </h3>
             <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">状态</span>
+              <span className="block text-xs font-medium text-slate-600 mb-1">
+                {t('issue.status_label')}
+              </span>
               <select
                 className={inputClass}
                 value={status}
@@ -845,7 +905,9 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
             {status === 'paid' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <label className="block">
-                  <span className="block text-xs font-medium text-slate-600 mb-1">付款到账日期</span>
+                  <span className="block text-xs font-medium text-slate-600 mb-1">
+                    {t('issue.payment_received_date')}
+                  </span>
                   <input
                     type="date"
                     className={inputClass}
@@ -854,7 +916,9 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
                   />
                 </label>
                 <label className="block">
-                  <span className="block text-xs font-medium text-slate-600 mb-1">银行参考号</span>
+                  <span className="block text-xs font-medium text-slate-600 mb-1">
+                    {t('issue.bank_reference')}
+                  </span>
                   <input
                     className={inputClass}
                     value={bankReference}
@@ -867,14 +931,16 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
             <AttachmentUploader
               paths={paymentAttachments}
               onChange={setPaymentAttachments}
-              label="收款证明（银行流水截图等）"
+              label={t('issue.payment_attachments')}
             />
           </div>
 
           {/* 备注 */}
           <div className="rounded-lg border border-slate-200 bg-white p-4">
             <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">备注</span>
+              <span className="block text-xs font-medium text-slate-600 mb-1">
+                {t('issue.remarks')}
+              </span>
               <textarea
                 className={inputClass}
                 rows={2}
@@ -895,7 +961,7 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
             onClick={onClose}
             className="flex-1 md:flex-none md:min-w-[100px] h-11 px-4 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100"
           >
-            取消
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
@@ -903,7 +969,7 @@ export default function IssueForm({ issueId, onClose, onSaved }: Props) {
             disabled={saveMutation.isPending}
             className="flex-1 md:flex-none md:min-w-[100px] h-11 px-4 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-60"
           >
-            {saveMutation.isPending ? '保存中…' : '保存'}
+            {saveMutation.isPending ? t('common.saving') : t('common.save')}
           </button>
         </div>
       </footer>

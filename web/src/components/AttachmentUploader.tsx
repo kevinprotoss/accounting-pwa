@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { attachmentsApi } from '../api/attachments';
 
 function displayName(p: string): string {
@@ -15,6 +16,7 @@ type Props = {
 };
 
 export default function AttachmentUploader({ paths, onChange, label }: Props) {
+  const { t } = useTranslation();
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -36,9 +38,7 @@ export default function AttachmentUploader({ paths, onChange, label }: Props) {
   }
 
   async function handleRemove(p: string) {
-    if (!window.confirm(`移除附件「${displayName(p)}」？文件会进回收站。`)) {
-      return;
-    }
+    if (!window.confirm(t('message.confirm_delete'))) return;
     try {
       await attachmentsApi.remove(p);
       onChange(paths.filter((x) => x !== p));
@@ -57,7 +57,7 @@ export default function AttachmentUploader({ paths, onChange, label }: Props) {
           disabled={uploading}
           className="h-10 px-3 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-60"
         >
-          {uploading ? '上传中…' : '+ 添加附件'}
+          {uploading ? t('common.processing') : `+ ${t('common.add')}`}
         </button>
         <input
           ref={inputRef}
@@ -87,7 +87,7 @@ export default function AttachmentUploader({ paths, onChange, label }: Props) {
                 type="button"
                 onClick={() => handleRemove(p)}
                 className="shrink-0 w-8 h-8 flex items-center justify-center rounded text-red-600 hover:bg-red-50"
-                aria-label="移除"
+                aria-label={t('common.remove')}
               >
                 ✕
               </button>
