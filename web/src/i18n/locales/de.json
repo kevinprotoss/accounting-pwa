@@ -23,7 +23,9 @@
     "open_file": "Datei öffnen",
     "saving": "Wird gespeichert…",
     "processing": "Wird verarbeitet…",
-    "reset": "Zurücksetzen"
+    "reset": "Zurücksetzen",
+    "prev_page": "Zurück",
+    "next_page": "Weiter"
   },
   "nav": {
     "customers": "Kunden",
@@ -35,6 +37,13 @@
     "cars": "Fahrzeuge",
     "audit": "Prüfung",
     "company": "Firmendaten",
+    "more": "Mehr"
+  },
+  "nav_mobile": {
+    "customers": "Kunden",
+    "receipts": "Eingang",
+    "issues": "Ausgang",
+    "stock": "Lager",
     "more": "Mehr"
   },
   "app": {
@@ -136,7 +145,8 @@
     "items_required": "Mindestens eine gültige Position erforderlich (Produktname und Menge)",
     "status_all": "Alle",
     "status_unused": "Nicht verwendet",
-    "status_used": "Verwendet"
+    "status_used": "Verwendet",
+    "column_gross_net": "Brutto / Netto"
   },
   "issue": {
     "title": "Warenausgang",
@@ -191,7 +201,6 @@
     "empty_hint": "Noch kein Warenausgang. Klicken Sie oben rechts auf „Ausgang\".",
     "no_match": "Keine Belege mit „{{summary}}\" gefunden.",
     "export_badge": "Ausfuhr",
-    "needs_review": "Zu prüfen",
     "stock_empty": "Kein Lagerbestand verfügbar. Bitte zuerst einen Wareneingang anlegen.",
     "loading_stock": "Lagerbestand wird geladen…",
     "insufficient_stock": "„{{name}}\": Bestand unzureichend, verfügbar {{available}}, angefordert {{requested}}",
@@ -200,7 +209,18 @@
     "number_required": "Bitte Belegnummer ausfüllen",
     "invoice_not_ready": "Rechnungsnummer noch nicht erzeugt. Bitte neu laden.",
     "delete_confirm": "Warenausgang „{{number}}\" wirklich löschen? Der Lagerbestand wird automatisch freigegeben, das Rechnungs-PDF wird entfernt.",
-    "delete_failed": "Löschen fehlgeschlagen: {{error}}"
+    "delete_failed": "Löschen fehlgeschlagen: {{error}}",
+    "status_all": "Alle Status",
+    "column_gross_net": "Brutto / Netto",
+    "column_pdf": "Rechnungs-PDF",
+    "add_row": "Zeile hinzufügen",
+    "delete_title": "Warenausgang löschen",
+    "pdf_generate": "Erzeugen",
+    "pdf_generating": "Wird erzeugt...",
+    "pdf_regenerate": "Neu erzeugen",
+    "pdf_download": "Herunterladen",
+    "amount_gross": "Brutto",
+    "amount_net": "Netto"
   },
   "stock": {
     "title": "Lagerbestand",
@@ -276,7 +296,14 @@
     "empty_hint": "Noch keine Ausgaben. Klicken Sie oben rechts auf „Ausgabe\".",
     "no_match": "Keine Einträge mit „{{summary}}\" gefunden.",
     "delete_confirm": "„{{label}}\" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
-    "delete_failed": "Löschen fehlgeschlagen: {{error}}"
+    "delete_failed": "Löschen fehlgeschlagen: {{error}}",
+    "remarks": "Bemerkung",
+    "status_all": "Alle Typen",
+    "column_net_tax": "Netto / USt.",
+    "column_type": "Typ",
+    "needs_review": "Zu prüfen",
+    "delete_title": "Ausgabe löschen",
+    "tax_label": "USt."
   },
   "car": {
     "title": "Fahrzeuge",
@@ -291,9 +318,6 @@
     "rule_1_hint": "Verbrenner, gewöhnliche Hybride",
     "rule_025": "0,25%-Regelung (E-Auto)",
     "rule_025_hint": "Reine E-Autos, §6 Abs. 1 Nr. 4 S. 2 EStG",
-    "monthly_tax_label_1": "Monatlicher Betrag nach 1%-Regelung",
-    "monthly_tax_label_025": "Monatlicher Betrag nach 0,25%-Regelung",
-    "monthly_tax_formula": "Berechnung: Bruttopreis × {{rate}} % = {{amount}} €. Dieser Betrag kann unter „Sonstige Ausgaben\" mit „Umsatzsteuer\" erfasst und in der Steuerübersicht als zusätzliche USt. berücksichtigt werden.",
     "count_one": "{{count}} Fahrzeug",
     "count_other": "{{count}} Fahrzeuge",
     "empty_hint": "Noch keine Fahrzeuge. Klicken Sie oben rechts auf „Fahrzeug\", um einen Firmenwagen für die 1%- oder 0,25%-Regelung zu erfassen.",
@@ -309,7 +333,20 @@
     "reactivate_message": "Nach der Aktivierung werden Buchungen ab dem nächsten Monat erzeugt. Die Monate der Deaktivierung werden nicht nachgetragen. „{{plate}}\" wirklich aktivieren?",
     "delete_title": "Fahrzeug löschen",
     "delete_message": "Dieses Fahrzeug hat {{count}} Monatsbuchungen. Beim Löschen werden sie mit entfernt und können nicht wiederhergestellt werden. „{{plate}}\" wirklich löschen?",
-    "delete_failed": "Löschen fehlgeschlagen: {{error}}"
+    "delete_failed": "Löschen fehlgeschlagen: {{error}}",
+    "rule": "Regelung",
+    "status": "Status",
+    "electric_badge": "E-Auto",
+    "rule_percent_1": "1 %",
+    "rule_percent_025": "0,25 % (E-Auto)",
+    "monthly_tax_label": "Monatlicher Betrag (volle Monate)",
+    "monthly_tax_hint": "Buchungen werden nur für vollständig genutzte Kalendermonate erzeugt (Anschaffung am Monatsersten, keine Deaktivierung am Monatsende). Im Anschaffungsmonat bei Anschaffung nicht am 1., im Deaktivierungsmonat und im ersten Monat nach Reaktivierung werden keine Buchungen erzeugt.",
+    "license_plate_required": "Bitte Kennzeichen ausfüllen",
+    "acquisition_date_required": "Bitte Anschaffungsdatum ausfüllen",
+    "deactivate_failed": "Deaktivieren fehlgeschlagen: {{error}}",
+    "reactivate_failed": "Aktivieren fehlgeschlagen: {{error}}",
+    "card_summary": "Brutto {{price}} € · {{rule}} · Anschaffung {{date}}",
+    "expense_summary": "{{count}} Buchungen / {{total}} €"
   },
   "audit": {
     "title": "Prüfung",
@@ -356,7 +393,6 @@
     "chain_download_pdf": "Rechnungs-PDF herunterladen",
     "chain_pdf_not_ready": "PDF noch nicht erzeugt",
     "chain_items_section": "Positionen",
-    "chain_product_name": "Produktname",
     "chain_quantity": "Menge",
     "chain_selling_price": "Verkaufspreis",
     "chain_purchase_price": "Einkaufspreis",
@@ -429,7 +465,22 @@
     "car_month": "Monat",
     "car_amount": "Betrag",
     "car_rule_column": "Regelung",
-    "car_total": "Gesamt"
+    "car_total": "Gesamt",
+    "fuzzy_match": "Unscharfe Suche",
+    "issue_count": "{{count}} Belege (Warenausgang)",
+    "issue_empty": "Keine passenden Warenausgangsbelege gefunden.",
+    "issue_search_product_name": "Produktname",
+    "receipt_count": "{{count}} Belege (Wareneingang)",
+    "receipt_empty": "Keine passenden Wareneingangsbelege gefunden.",
+    "receipt_supplier_invoice": "Lieferantenrechnung",
+    "receipt_remarks": "Bemerkung",
+    "expense_count": "{{count}} Ausgaben",
+    "expense_empty": "Keine passenden Ausgaben gefunden.",
+    "expense_action_view_detail": "Details anzeigen",
+    "car_count": "{{count}} Fahrzeuge",
+    "car_empty": "Keine passenden Fahrzeuge gefunden.",
+    "car_card_summary": "Brutto {{price}} € · {{count}} Buchungen",
+    "car_action_view_detail": "Details anzeigen"
   },
   "scan": {
     "button": "Beleg",

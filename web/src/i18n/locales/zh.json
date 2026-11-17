@@ -23,7 +23,9 @@
     "open_file": "打开文件",
     "saving": "保存中…",
     "processing": "处理中…",
-    "reset": "重置"
+    "reset": "重置",
+    "prev_page": "上一页",
+    "next_page": "下一页"
   },
   "nav": {
     "customers": "客户",
@@ -37,8 +39,15 @@
     "company": "公司",
     "more": "更多"
   },
+  "nav_mobile": {
+    "customers": "客户",
+    "receipts": "进货",
+    "issues": "出货",
+    "stock": "库存",
+    "more": "更多"
+  },
   "app": {
-    "title": "会计系统"
+    "title": "个体户会计系统"
   },
   "language": {
     "label": "语言"
@@ -136,7 +145,8 @@
     "items_required": "至少需要一条有效明细（产品名和数量）",
     "status_all": "全部状态",
     "status_unused": "未使用",
-    "status_used": "已使用"
+    "status_used": "已使用",
+    "column_gross_net": "含税 / 净额"
   },
   "issue": {
     "title": "销售",
@@ -191,7 +201,6 @@
     "empty_hint": "暂无销售单，点击右上角「新建销售单」开始。",
     "no_match": "没有匹配「{{summary}}」的单据。",
     "export_badge": "出口",
-    "needs_review": "待核对",
     "stock_empty": "暂无可用库存，请先创建进货单。",
     "loading_stock": "加载库存…",
     "insufficient_stock": "「{{name}}」库存不足，可用 {{available}}，请求 {{requested}}",
@@ -200,7 +209,18 @@
     "number_required": "请填写单号",
     "invoice_not_ready": "发票号尚未生成，请刷新后重试",
     "delete_confirm": "确定删除销售单「{{number}}」？删除后库存会自动释放，发票 PDF 会一并移除。",
-    "delete_failed": "删除失败：{{error}}"
+    "delete_failed": "删除失败：{{error}}",
+    "status_all": "全部状态",
+    "column_gross_net": "含税 / 净额",
+    "column_pdf": "发票 PDF",
+    "add_row": "添加行",
+    "delete_title": "删除销售单",
+    "pdf_generate": "生成",
+    "pdf_generating": "生成中...",
+    "pdf_regenerate": "重新生成",
+    "pdf_download": "下载",
+    "amount_gross": "含税",
+    "amount_net": "净"
   },
   "stock": {
     "title": "库存",
@@ -276,7 +296,14 @@
     "empty_hint": "暂无支出记录，点击右上角「新建支出」开始。",
     "no_match": "没有匹配「{{summary}}」的记录。",
     "delete_confirm": "确定删除「{{label}}」？此操作不可撤销。",
-    "delete_failed": "删除失败：{{error}}"
+    "delete_failed": "删除失败：{{error}}",
+    "remarks": "备注",
+    "status_all": "全部类型",
+    "column_net_tax": "净额 / 税额",
+    "column_type": "类型",
+    "needs_review": "待核对",
+    "delete_title": "删除支出",
+    "tax_label": "税"
   },
   "car": {
     "title": "车辆",
@@ -291,9 +318,6 @@
     "rule_1_hint": "燃油车、普通混动车",
     "rule_025": "0.25% 规则（电车）",
     "rule_025_hint": "纯电车，适用 §6 Abs. 1 Nr. 4 S. 2 EStG",
-    "monthly_tax_label_1": "1% 规则月应税额",
-    "monthly_tax_label_025": "0.25% 规则月应税额",
-    "monthly_tax_formula": "计算公式：总价 × {{rate}}% = {{amount}} €。该金额可在「其他支出」中勾选「销项税」录入，计入税务报表的附加销项税。",
     "count_one": "共 {{count}} 辆车",
     "count_other": "共 {{count}} 辆车",
     "empty_hint": "暂无车辆。点击右上角「添加车辆」录入公司车，用于 1% 或 0.25% 规则计算。",
@@ -309,7 +333,20 @@
     "reactivate_message": "启用后从下个月开始生成记录，停用期间的月份不补。确定启用「{{plate}}」？",
     "delete_title": "删除车辆",
     "delete_message": "该车已有 {{count}} 条月度记录，删除后一并移除，不可恢复。确定删除「{{plate}}」？",
-    "delete_failed": "删除失败：{{error}}"
+    "delete_failed": "删除失败：{{error}}",
+    "rule": "规则",
+    "status": "状态",
+    "electric_badge": "电车",
+    "rule_percent_1": "1%",
+    "rule_percent_025": "0.25%（电车）",
+    "monthly_tax_label": "月度应税额（完整月）",
+    "monthly_tax_hint": "仅当车辆在自然月内完整使用（月初已购、月末未停）时生成记录。购车当月若非 1 号、停用月、启用后首月均不生成。",
+    "license_plate_required": "请填写车牌号",
+    "acquisition_date_required": "请填写购车日期",
+    "deactivate_failed": "停用失败：{{error}}",
+    "reactivate_failed": "启用失败：{{error}}",
+    "card_summary": "总价 {{price}} € · {{rule}} · 购车 {{date}}",
+    "expense_summary": "{{count}} 条 / {{total}} €"
   },
   "audit": {
     "title": "审计",
@@ -356,7 +393,6 @@
     "chain_download_pdf": "下载发票 PDF",
     "chain_pdf_not_ready": "PDF 尚未生成",
     "chain_items_section": "商品明细",
-    "chain_product_name": "产品名",
     "chain_quantity": "数量",
     "chain_selling_price": "售价",
     "chain_purchase_price": "进价",
@@ -429,7 +465,22 @@
     "car_month": "月份",
     "car_amount": "金额",
     "car_rule_column": "规则",
-    "car_total": "合计"
+    "car_total": "合计",
+    "fuzzy_match": "模糊匹配",
+    "issue_count": "共 {{count}} 张销售单",
+    "issue_empty": "没有匹配条件的销售单。",
+    "issue_search_product_name": "商品名",
+    "receipt_count": "共 {{count}} 张进货单",
+    "receipt_empty": "没有匹配条件的进货单。",
+    "receipt_supplier_invoice": "供应商发票号",
+    "receipt_remarks": "备注",
+    "expense_count": "共 {{count}} 条支出",
+    "expense_empty": "没有匹配条件的支出。",
+    "expense_action_view_detail": "查看详情",
+    "car_count": "共 {{count}} 辆车",
+    "car_empty": "没有匹配条件的车辆。",
+    "car_card_summary": "总价 {{price}} € · {{count}} 条记录",
+    "car_action_view_detail": "查看详情"
   },
   "scan": {
     "button": "扫描账单",

@@ -13,6 +13,7 @@ import {
 import ActionMenu, { type Action } from './ActionMenu';
 import ConfirmDialog from './ConfirmDialog';
 import ListFilterBar from './ListFilterBar';
+import { useFilterSummaryText } from '../hooks/useFilterSummaryText';
 import ScanTaskBell from './ScanTaskBell';
 import ScanTaskDrawer from './ScanTaskDrawer';
 import ScanUploadDialog from './ScanUploadDialog';
@@ -52,7 +53,7 @@ export default function ReceiptList({
   onCreate,
   onEdit,
 }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const { data = [], isLoading, error } = useQuery({
     queryKey: ['receipts'],
@@ -120,7 +121,7 @@ export default function ReceiptList({
     ];
   }
 
-  const emptySummary = filterSummary(filter, statusOptions);
+  const emptySummary = useFilterSummaryText(filterSummary(filter, statusOptions));
 
   return (
     <div className="space-y-4">
@@ -217,7 +218,7 @@ export default function ReceiptList({
                 {t('receipt.items_title')}
               </div>
               <div role="columnheader" className="px-3 py-2 text-right">
-                {t('receipt.total_gross')} / {t('receipt.total_net')}
+                {t('receipt.column_gross_net')}
               </div>
               <div
                 role="columnheader"
@@ -243,7 +244,7 @@ export default function ReceiptList({
                     <span className="mr-2 text-slate-400">
                       {expanded ? '▾' : '▸'}
                     </span>
-                    {formatMonthLabel(group.month)} ({group.items.length})
+                    {formatMonthLabel(group.month, i18n.language)} ({group.items.length})
                   </div>
 
                   {expanded &&
@@ -354,7 +355,7 @@ export default function ReceiptList({
                     onClick={() => toggleMonth(group.month)}
                   >
                     <span>
-                      {formatMonthLabel(group.month)} ({group.items.length})
+                      {formatMonthLabel(group.month, i18n.language)} ({group.items.length})
                     </span>
                     <span className="text-slate-400">
                       {expanded ? '▾' : '▸'}

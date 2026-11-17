@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { taxApi } from '../api/tax';
 import { carsApi } from '../api/cars';
 import { formatMoney } from '../lib/utils';
@@ -13,12 +14,6 @@ function defaultRange() {
   return { from: `${year}-01-01`, to: `${year}-12-31` };
 }
 
-const granularityOptions = [
-  { value: 'month', label: '按月' },
-  { value: 'quarter', label: '按季度' },
-  { value: 'year', label: '按年度' },
-];
-
 function SummaryCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4">
@@ -28,11 +23,26 @@ function SummaryCard({ title, children }: { title: string; children: ReactNode }
   );
 }
 
-function Line({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+function Line({
+  label,
+  value,
+  strong,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
   return (
     <div className="flex justify-between text-sm gap-2">
-      <span className="text-slate-600">{label}</span>
-      <span className={strong ? 'font-semibold text-slate-900' : 'text-slate-700'}>
+      <span className="text-slate-600 min-w-0 truncate" title={label}>
+        {label}
+      </span>
+      <span
+        className={
+          'whitespace-nowrap shrink-0 ' +
+          (strong ? 'font-semibold text-slate-900' : 'text-slate-700')
+        }
+      >
         {value}
       </span>
     </div>
@@ -40,11 +50,14 @@ function Line({ label, value, strong }: { label: string; value: string; strong?:
 }
 
 export default function TaxPage() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const initial = defaultRange();
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
-  const [granularity, setGranularity] = useState<'month' | 'quarter' | 'year'>('quarter');
+  const [granularity, setGranularity] = useState<'month' | 'quarter' | 'year'>(
+    'quarter'
+  );
 
   useEffect(() => {
     carsApi
@@ -59,6 +72,19 @@ export default function TaxPage() {
     queryKey: ['tax', from, to, granularity],
     queryFn: () => taxApi.report(from, to, granularity),
   });
+
+  const granularityOptions = [
+    { value: 'month', label: t('tax.by_month') },
+    { value: 'quarter', label: t('tax.by_quarter') },
+    { value: 'year', label: t('tax.by_year') },
+  ];
+
+  const summaryTitle =
+    granularity === 'month'
+      ? t('tax.monthly_summary')
+      : granularity === 'quarter'
+      ? t('tax.quarterly_summary')
+      : t('tax.yearly_summary');
 
   function handleExport() {
     const url = taxApi.elsterUrl(from, to, granularity);
@@ -75,7 +101,9 @@ export default function TaxPage() {
       <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <label className="block">
-            <span className="block text-xs font-medium text-slate-600 mb-1">起始日期</span>
+            <span className="block text-xs font-medium text-slate-600 mb-1">
+              {t('tax.start_date')}
+            </span>
             <input
               type="date"
               className={inputClass}
@@ -84,7 +112,9 @@ export default function TaxPage() {
             />
           </label>
           <label className="block">
-            <span className="block text-xs font-medium text-slate-600 mb-1">结束日期</span>
+            <span className="block text-xs font-medium text-slate-600 mb-1">
+              {t('tax.end_date')}
+            </span>
             <input
               type="date"
               className={inputClass}
@@ -94,13 +124,17 @@ export default function TaxPage() {
           </label>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-slate-600">汇总粒度</span>
+          <span className="text-xs font-medium text-slate-600">
+            {t('tax.granularity')}
+          </span>
           <div className="inline-flex rounded-md border border-slate-300 overflow-hidden">
             {granularityOptions.map((g) => (
               <button
                 key={g.value}
                 type="button"
-                onClick={() => setGranularity(g.value as typeof granularity)}
+                onClick={() =>
+                  setGranularity(g.value as typeof granularity)
+                }
                 className={
                   'h-10 px-3 text-sm ' +
                   (granularity === g.value
@@ -119,49 +153,74 @@ export default function TaxPage() {
             disabled={!data || data.periods.length === 0}
             className="h-10 px-4 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-60"
           >
-            导出 ELSTER TXT
+            {t('tax.export_elster')}
           </button>
         </div>
       </div>
 
-      {isLoading && <p className="text-sm text-slate-500">加载中…</p>}
-      {error && <p className="text-sm text-red-600">加载失败：{String(error)}</p>}
+      {isLoading && (
+        <p className="text-sm text-slate-500">{t('common.loading')}</p>
+      )}
+      {error && (
+        <p className="text-sm text-red-600">
+          {t('message.load_failed', { error: String(error) })}
+        </p>
+      )}
 
       {data && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            <SummaryCard title="国内销售">
-              <Line label="净额" value={`${formatMoney(data.summary.domesticNet)} €`} />
-              <Line label="销项税" value={`${formatMoney(data.summary.domesticTax)} €`} />
-            </SummaryCard>
-            <SummaryCard title="出口销售">
-              <Line label="净额（0%）" value={`${formatMoney(data.summary.exportNet)} €`} />
-            </SummaryCard>
-            <SummaryCard title="进项税合计">
+            <SummaryCard title={t('tax.domestic_sales')}>
               <Line
-                label="进货"
+                label={t('tax.net')}
+                value={`${formatMoney(data.summary.domesticNet)} €`}
+              />
+              <Line
+                label={t('tax.output_tax')}
+                value={`${formatMoney(data.summary.domesticTax)} €`}
+              />
+            </SummaryCard>
+            <SummaryCard title={t('tax.export_sales')}>
+              <Line
+                label={t('tax.export_net_zero')}
+                value={`${formatMoney(data.summary.exportNet)} €`}
+              />
+            </SummaryCard>
+            <SummaryCard title={t('tax.input_tax_total')}>
+              <Line
+                label={t('tax.purchases')}
                 value={`${formatMoney(data.summary.inputTaxPurchase)} €`}
               />
               <Line
-                label="其他支出"
+                label={t('tax.expenses')}
                 value={`${formatMoney(data.summary.inputTaxExpense)} €`}
               />
-              <Line label="合计" value={`${formatMoney(data.summary.inputTax)} €`} strong />
+              <Line
+                label={t('tax.total')}
+                value={`${formatMoney(data.summary.inputTax)} €`}
+                strong
+              />
             </SummaryCard>
-            <SummaryCard title="应缴增值税（Zahllast）">
+            <SummaryCard title={t('tax.vat_payable')}>
               <div
                 className={`text-2xl font-bold ${
-                  data.summary.vatPayable >= 0 ? 'text-red-600' : 'text-green-600'
+                  data.summary.vatPayable >= 0
+                    ? 'text-red-600'
+                    : 'text-green-600'
                 }`}
               >
                 {formatMoney(Math.abs(data.summary.vatPayable))} €
               </div>
               <div className="text-xs text-slate-500 mt-1">
-                {data.summary.vatPayable >= 0 ? '需缴纳' : '可退税'}
+                {data.summary.vatPayable >= 0
+                  ? t('tax.to_pay')
+                  : t('tax.refundable')}
               </div>
               {data.summary.additionalTax > 0 && (
                 <div className="text-xs text-slate-500 mt-1">
-                  含附加销项税 {formatMoney(data.summary.additionalTax)} €
+                  {t('tax.additional_tax', {
+                    amount: formatMoney(data.summary.additionalTax),
+                  })}
                 </div>
               )}
             </SummaryCard>
@@ -170,29 +229,41 @@ export default function TaxPage() {
           <div className="rounded-lg border border-slate-200 bg-white">
             <div className="px-4 py-3 border-b border-slate-200">
               <h3 className="text-sm font-semibold text-slate-700">
-                {granularity === 'month'
-                  ? '按月汇总'
-                  : granularity === 'quarter'
-                  ? '按季度汇总'
-                  : '按年度汇总'}
+                {summaryTitle}
               </h3>
             </div>
 
             {data.periods.length === 0 ? (
-              <div className="px-4 py-6 text-sm text-slate-500">所选期间没有数据。</div>
+              <div className="px-4 py-6 text-sm text-slate-500">
+                {t('tax.no_data')}
+              </div>
             ) : (
               <>
                 <div className="hidden md:block overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead className="bg-slate-100 text-slate-600">
                       <tr>
-                        <th className="px-4 py-2 text-left">期间</th>
-                        <th className="px-4 py-2 text-right">国内净额</th>
-                        <th className="px-4 py-2 text-right">销项税</th>
-                        <th className="px-4 py-2 text-right">出口净额</th>
-                        <th className="px-4 py-2 text-right">进项税</th>
-                        <th className="px-4 py-2 text-right">附加销项税</th>
-                        <th className="px-4 py-2 text-right">Zahllast</th>
+                        <th className="px-4 py-2 text-left">
+                          {t('tax.period')}
+                        </th>
+                        <th className="px-4 py-2 text-right">
+                          {t('tax.domestic_net')}
+                        </th>
+                        <th className="px-4 py-2 text-right">
+                          {t('tax.output_tax')}
+                        </th>
+                        <th className="px-4 py-2 text-right">
+                          {t('tax.export_net')}
+                        </th>
+                        <th className="px-4 py-2 text-right">
+                          {t('tax.input_tax')}
+                        </th>
+                        <th className="px-4 py-2 text-right">
+                          {t('tax.additional_output_tax')}
+                        </th>
+                        <th className="px-4 py-2 text-right">
+                          {t('tax.zahllast')}
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -216,7 +287,9 @@ export default function TaxPage() {
                           </td>
                           <td
                             className={`px-4 py-2 text-right font-semibold ${
-                              p.vatPayable >= 0 ? 'text-red-600' : 'text-green-600'
+                              p.vatPayable >= 0
+                                ? 'text-red-600'
+                                : 'text-green-600'
                             }`}
                           >
                             {formatMoney(p.vatPayable)} €
@@ -234,21 +307,26 @@ export default function TaxPage() {
                         <span className="font-medium">{p.label}</span>
                         <span
                           className={`font-semibold ${
-                            p.vatPayable >= 0 ? 'text-red-600' : 'text-green-600'
+                            p.vatPayable >= 0
+                              ? 'text-red-600'
+                              : 'text-green-600'
                           }`}
                         >
                           {formatMoney(p.vatPayable)} €
                         </span>
                       </div>
                       <div className="text-xs text-slate-500">
-                        国内净额 {formatMoney(p.domesticNet)} € · 销项税{' '}
+                        {t('tax.domestic_net')} {formatMoney(p.domesticNet)} €
+                        · {t('tax.output_tax')}{' '}
                         {formatMoney(p.domesticTax)} €
                       </div>
                       <div className="text-xs text-slate-500">
-                        出口净额 {formatMoney(p.exportNet)} € · 进项税{' '}
-                        {formatMoney(p.inputTax)} €
+                        {t('tax.export_net')} {formatMoney(p.exportNet)} € ·{' '}
+                        {t('tax.input_tax')} {formatMoney(p.inputTax)} €
                         {p.additionalTax > 0 &&
-                          ` · 附加 ${formatMoney(p.additionalTax)} €`}
+                          ` · ${t('tax.additional_output_tax')} ${formatMoney(
+                            p.additionalTax
+                          )} €`}
                       </div>
                     </li>
                   ))}

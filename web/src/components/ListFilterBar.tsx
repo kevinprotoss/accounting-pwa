@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
-import { TIME_PRESETS, type ListFilter, type TimePreset } from '../lib/listFilter';
+import { TIME_PRESETS, presetI18nKey, type ListFilter, type TimePreset } from '../lib/listFilter';
 
 type StatusOption = { value: string; label: string };
 
@@ -15,25 +15,6 @@ type Props = {
 
 const lgPrimaryPresets: TimePreset[] = ['all', 'month', 'lastMonth', 'year'];
 const lgExtraPresets: TimePreset[] = ['today', 'week', 'custom'];
-
-function presetKey(p: TimePreset): string {
-  switch (p) {
-    case 'all':
-      return 'filter.all';
-    case 'today':
-      return 'filter.today';
-    case 'week':
-      return 'filter.week';
-    case 'month':
-      return 'filter.month';
-    case 'lastMonth':
-      return 'filter.last_month';
-    case 'year':
-      return 'filter.year';
-    case 'custom':
-      return 'filter.custom';
-  }
-}
 
 function FilterPanelContent({
   filter,
@@ -57,23 +38,23 @@ function FilterPanelContent({
         <div className="flex flex-wrap gap-2">
           {TIME_PRESETS.map((p) => (
             <button
-              key={p.value}
+              key={p}
               type="button"
               onClick={() => {
-                if (p.value === 'custom') {
+                if (p === 'custom') {
                   onChange({ timePreset: 'custom' });
                 } else {
-                  onChange({ timePreset: p.value, customFrom: '', customTo: '' });
+                  onChange({ timePreset: p, customFrom: '', customTo: '' });
                 }
               }}
               className={cn(
                 'h-9 px-3 text-sm rounded-md border whitespace-nowrap',
-                filter.timePreset === p.value
+                filter.timePreset === p
                   ? 'bg-slate-900 text-white border-slate-900'
                   : 'bg-white text-slate-700 border-slate-300'
               )}
             >
-              {t(presetKey(p.value))}
+              {t(presetI18nKey(p))}
             </button>
           ))}
         </div>
@@ -190,7 +171,7 @@ export default function ListFilterBar({
     } else {
       activeTags.push({
         key: 'time',
-        label: t(presetKey(filter.timePreset)),
+        label: t(presetI18nKey(filter.timePreset)),
         onRemove: () =>
           onChange({ timePreset: 'month', customFrom: '', customTo: '' }),
       });
@@ -225,27 +206,27 @@ export default function ListFilterBar({
     onClear();
   }
 
-  function renderChip(p: (typeof TIME_PRESETS)[number], compact = false) {
+  function renderChip(p: TimePreset, compact = false) {
     return (
       <button
-        key={p.value}
+        key={p}
         type="button"
         onClick={() => {
-          if (p.value === 'custom') {
+          if (p === 'custom') {
             onChange({ timePreset: 'custom' });
           } else {
-            onChange({ timePreset: p.value, customFrom: '', customTo: '' });
+            onChange({ timePreset: p, customFrom: '', customTo: '' });
           }
         }}
         className={cn(
           'h-9 text-sm rounded-md border whitespace-nowrap',
           compact ? 'px-2.5' : 'px-3',
-          filter.timePreset === p.value
+          filter.timePreset === p
             ? 'bg-slate-900 text-white border-slate-900'
             : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
         )}
       >
-        {t(presetKey(p.value))}
+        {t(presetI18nKey(p))}
       </button>
     );
   }
@@ -292,7 +273,7 @@ export default function ListFilterBar({
 
           {/* lg: 4 个常用胶囊 + Mehr 下拉 + 状态下拉 */}
           <div className="hidden lg:flex xl:hidden gap-1.5 items-center shrink-0">
-            {TIME_PRESETS.filter((p) => lgPrimaryPresets.includes(p.value)).map(
+            {TIME_PRESETS.filter((p) => lgPrimaryPresets.includes(p)).map(
               (p) => renderChip(p, true)
             )}
             <div ref={lgMoreRef} className="relative">
@@ -311,17 +292,17 @@ export default function ListFilterBar({
               </button>
               {lgMoreOpen && (
                 <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-lg shadow-lg border border-slate-200 p-2 z-40 space-y-1">
-                  {TIME_PRESETS.filter((p) => lgExtraPresets.includes(p.value)).map(
+                  {TIME_PRESETS.filter((p) => lgExtraPresets.includes(p)).map(
                     (p) => (
                       <button
-                        key={p.value}
+                        key={p}
                         type="button"
                         onClick={() => {
-                          if (p.value === 'custom') {
+                          if (p === 'custom') {
                             onChange({ timePreset: 'custom' });
                           } else {
                             onChange({
-                              timePreset: p.value,
+                              timePreset: p,
                               customFrom: '',
                               customTo: '',
                             });
@@ -330,12 +311,12 @@ export default function ListFilterBar({
                         }}
                         className={cn(
                           'w-full text-left h-9 px-2 text-sm rounded-md whitespace-nowrap',
-                          filter.timePreset === p.value
+                          filter.timePreset === p
                             ? 'bg-slate-900 text-white'
                             : 'text-slate-700 hover:bg-slate-100'
                         )}
                       >
-                        {t(presetKey(p.value))}
+                        {t(presetI18nKey(p))}
                       </button>
                     )
                   )}

@@ -1,13 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { auditApi } from '../../api/audit';
 import { formatMoney } from '../../lib/utils';
-
-const actionLabels: Record<string, string> = {
-  create: '创建',
-  update: '更新',
-  delete: '删除',
-};
 
 function formatJson(raw: string | null): string {
   if (!raw) return '';
@@ -24,10 +19,20 @@ type Props = {
 };
 
 export default function IssueChainDetail({ issueId, onClose }: Props) {
+  const { t } = useTranslation();
   const { data, isLoading, error } = useQuery({
     queryKey: ['audit-issue-chain', issueId],
     queryFn: () => auditApi.issueChain(issueId),
   });
+
+  const actionLabels = useMemo<Record<string, string>>(
+    () => ({
+      create: t('audit.chain_history_create'),
+      update: t('audit.chain_history_update'),
+      delete: t('audit.chain_history_delete'),
+    }),
+    [t]
+  );
 
   const [expandedHistory, setExpandedHistory] = useState<Set<number>>(new Set());
   const [expandedReceipt, setExpandedReceipt] = useState<Set<number>>(new Set());
@@ -53,7 +58,7 @@ export default function IssueChainDetail({ issueId, onClose }: Props) {
   if (isLoading) {
     return (
       <div className="fixed inset-0 z-40 bg-slate-50 flex items-center justify-center md:left-56">
-        <p className="text-sm text-slate-500">加载中…</p>
+        <p className="text-sm text-slate-500">{t('common.loading')}</p>
       </div>
     );
   }
@@ -61,12 +66,14 @@ export default function IssueChainDetail({ issueId, onClose }: Props) {
   if (error || !data) {
     return (
       <div className="fixed inset-0 z-40 bg-slate-50 flex flex-col items-center justify-center gap-3 md:left-56">
-        <p className="text-sm text-red-600">加载失败：{String(error)}</p>
+        <p className="text-sm text-red-600">
+          {t('message.load_failed', { error: String(error) })}
+        </p>
         <button
           onClick={onClose}
           className="h-11 px-4 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100"
         >
-          返回列表
+          {t('common.back_to_list')}
         </button>
       </div>
     );
@@ -86,13 +93,13 @@ export default function IssueChainDetail({ issueId, onClose }: Props) {
     <div className="fixed inset-0 z-40 bg-slate-50 flex flex-col md:left-56">
       <header className="shrink-0 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
         <h2 className="text-base font-semibold truncate">
-          链路追溯：{issue.issue_number}
+          {t('audit.chain_title', { number: issue.issue_number })}
         </h2>
         <button
           onClick={onClose}
           className="h-11 px-3 text-sm text-slate-600 hover:underline shrink-0"
         >
-          返回列表
+          {t('common.back_to_list')}
         </button>
       </header>
 
@@ -100,30 +107,40 @@ export default function IssueChainDetail({ issueId, onClose }: Props) {
         <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-4">
           {/* 销售信息 */}
           <section className="rounded-lg border border-slate-200 bg-white p-4">
-            <h3 className="text-sm font-semibold text-slate-700 mb-3">销售信息</h3>
+            <h3 className="text-sm font-semibold text-slate-700 mb-3">
+              {t('audit.chain_sales_info')}
+            </h3>
             <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-              <Row label="单号" value={issue.issue_number} />
-              <Row label="日期" value={issue.date} />
-              <Row label="客户" value={issue.customer_name ?? '—'} />
-              <Row label="发票号" value={issue.invoice_number ?? '—'} />
-              <Row label="状态" value={issue.status === 'paid' ? '已付款' : '待付款'} />
-              <Row label="出口" value={issue.is_export ? '是' : '否'} />
-              <Row label="承运商" value={issue.carrier ?? '—'} />
-              <Row label="跟踪号" value={issue.tracking_number ?? '—'} />
-              <Row label="发货日期" value={issue.shipping_date ?? '—'} />
+              <Row label={t('audit.chain_number')} value={issue.issue_number} />
+              <Row label={t('audit.chain_date')} value={issue.date} />
+              <Row label={t('audit.chain_customer')} value={issue.customer_name ?? '—'} />
+              <Row label={t('audit.chain_invoice_number')} value={issue.invoice_number ?? '—'} />
+              <Row
+                label={t('audit.chain_status')}
+                value={issue.status === 'paid' ? t('audit.chain_status_paid') : t('audit.chain_status_open')}
+              />
+              <Row
+                label={t('audit.chain_export')}
+                value={issue.is_export ? t('audit.chain_yes') : t('audit.chain_no')}
+              />
+              <Row label={t('audit.chain_carrier')} value={issue.carrier ?? '—'} />
+              <Row label={t('audit.chain_tracking_number')} value={issue.tracking_number ?? '—'} />
+              <Row label={t('audit.chain_shipping_date')} value={issue.shipping_date ?? '—'} />
               {issue.is_export === 1 && (
                 <>
-                  <Row label="报关号" value={issue.export_customs_number ?? '—'} />
-                  <Row label="报关日期" value={issue.export_customs_date ?? '—'} />
-                  <Row label="出口地点" value={issue.export_location ?? '—'} />
+                  <Row label={t('audit.chain_customs_number')} value={issue.export_customs_number ?? '—'} />
+                  <Row label={t('audit.chain_customs_date')} value={issue.export_customs_date ?? '—'} />
+                  <Row label={t('audit.chain_export_location')} value={issue.export_location ?? '—'} />
                 </>
               )}
-              <Row label="付款到账日" value={issue.payment_received_date ?? '—'} />
-              <Row label="银行参考" value={issue.bank_reference ?? '—'} />
+              <Row label={t('audit.chain_payment_received_date')} value={issue.payment_received_date ?? '—'} />
+              <Row label={t('audit.chain_bank_reference')} value={issue.bank_reference ?? '—'} />
             </dl>
             {issue.customer_address && (
               <div className="mt-3 pt-3 border-t border-slate-100">
-                <div className="text-xs font-medium text-slate-500 mb-1">客户地址</div>
+                <div className="text-xs font-medium text-slate-500 mb-1">
+                  {t('audit.chain_customer_address')}
+                </div>
                 <div className="text-sm whitespace-pre-line text-slate-700">
                   {issue.customer_address}
                 </div>
@@ -131,7 +148,9 @@ export default function IssueChainDetail({ issueId, onClose }: Props) {
             )}
             {issue.remarks && (
               <div className="mt-3 pt-3 border-t border-slate-100">
-                <div className="text-xs font-medium text-slate-500 mb-1">备注</div>
+                <div className="text-xs font-medium text-slate-500 mb-1">
+                  {t('audit.chain_remarks')}
+                </div>
                 <div className="text-sm text-slate-700">{issue.remarks}</div>
               </div>
             )}
@@ -140,19 +159,21 @@ export default function IssueChainDetail({ issueId, onClose }: Props) {
           {/* 发票 */}
           {invoice && (
             <section className="rounded-lg border border-slate-200 bg-white p-4">
-              <h3 className="text-sm font-semibold text-slate-700 mb-3">发票</h3>
+              <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                {t('audit.chain_invoice_section')}
+              </h3>
               <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                <Row label="发票号" value={invoice.invoice_number} />
+                <Row label={t('audit.chain_invoice_number')} value={invoice.invoice_number} />
                 <Row
-                  label="净额"
+                  label={t('audit.chain_net_total')}
                   value={invoice.net_total != null ? `${formatMoney(invoice.net_total)} €` : '—'}
                 />
                 <Row
-                  label="税额"
+                  label={t('audit.chain_tax_total')}
                   value={invoice.tax_total != null ? `${formatMoney(invoice.tax_total)} €` : '—'}
                 />
                 <Row
-                  label="总额"
+                  label={t('audit.chain_gross_total')}
                   value={invoice.gross_total != null ? `${formatMoney(invoice.gross_total)} €` : '—'}
                 />
               </dl>
@@ -162,10 +183,12 @@ export default function IssueChainDetail({ issueId, onClose }: Props) {
                     href={`/api/issues/${issueId}/invoice.pdf`}
                     className="inline-flex h-9 px-3 items-center text-xs rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100"
                   >
-                    下载发票 PDF
+                    {t('audit.chain_download_pdf')}
                   </a>
                 ) : (
-                  <span className="text-xs text-slate-500">PDF 尚未生成</span>
+                  <span className="text-xs text-slate-500">
+                    {t('audit.chain_pdf_not_ready')}
+                  </span>
                 )}
               </div>
             </section>
@@ -174,7 +197,9 @@ export default function IssueChainDetail({ issueId, onClose }: Props) {
           {/* 商品明细 */}
           <section className="rounded-lg border border-slate-200 bg-white">
             <div className="px-4 py-3 border-b border-slate-200">
-              <h3 className="text-sm font-semibold text-slate-700">商品明细</h3>
+              <h3 className="text-sm font-semibold text-slate-700">
+                {t('audit.chain_items_section')}
+              </h3>
             </div>
             <div className="divide-y divide-slate-100">
               {items.map((it) => {
@@ -188,19 +213,19 @@ export default function IssueChainDetail({ issueId, onClose }: Props) {
                         {it.product_name}
                       </div>
                       <div className="text-right text-slate-600">
-                        <span className="md:hidden text-xs text-slate-500">数量 </span>
+                        <span className="md:hidden text-xs text-slate-500">{t('audit.chain_quantity')} </span>
                         {it.quantity}
                       </div>
                       <div className="text-right text-slate-600">
-                        <span className="md:hidden text-xs text-slate-500">售价 </span>
+                        <span className="md:hidden text-xs text-slate-500">{t('audit.chain_selling_price')} </span>
                         {formatMoney(it.selling_net_price)} €
                       </div>
                       <div className="text-right text-slate-600">
-                        <span className="md:hidden text-xs text-slate-500">进价 </span>
+                        <span className="md:hidden text-xs text-slate-500">{t('audit.chain_purchase_price')} </span>
                         {formatMoney(it.purchase_price)} €
                       </div>
                       <div className="text-right font-medium">
-                        <span className="md:hidden text-xs text-slate-500">利润 </span>
+                        <span className="md:hidden text-xs text-slate-500">{t('audit.chain_profit')} </span>
                         {formatMoney(lineProfit)} €
                       </div>
                     </div>
@@ -209,28 +234,28 @@ export default function IssueChainDetail({ issueId, onClose }: Props) {
                       onClick={() => toggleReceipt(it.id)}
                       className="mt-2 text-xs text-slate-600 hover:text-slate-900 underline"
                     >
-                      {expanded ? '收起进货批次' : '查看进货批次'}
+                      {expanded ? t('audit.chain_hide_batch') : t('audit.chain_view_batch')}
                     </button>
                     {expanded && (
                       <div className="mt-2 rounded-md bg-slate-50 p-3 text-xs space-y-1">
                         <div>
-                          <span className="text-slate-500">供应商：</span>
+                          <span className="text-slate-500">{t('audit.chain_supplier')}：</span>
                           {it.supplier ?? '—'}
                         </div>
                         <div>
-                          <span className="text-slate-500">进货单号：</span>
+                          <span className="text-slate-500">{t('audit.chain_receipt_number')}：</span>
                           {it.receipt_number}
                         </div>
                         <div>
-                          <span className="text-slate-500">进货日期：</span>
+                          <span className="text-slate-500">{t('audit.chain_receipt_date')}：</span>
                           {it.receipt_date}
                         </div>
                         <div>
-                          <span className="text-slate-500">供应商发票号：</span>
+                          <span className="text-slate-500">{t('audit.chain_supplier_invoice')}：</span>
                           {it.supplier_invoice ?? '—'}
                         </div>
                         <div>
-                          <span className="text-slate-500">税率：</span>
+                          <span className="text-slate-500">{t('audit.chain_tax_rate')}：</span>
                           {it.tax_rate}%
                         </div>
                       </div>
@@ -241,11 +266,11 @@ export default function IssueChainDetail({ issueId, onClose }: Props) {
             </div>
             <div className="px-4 py-3 border-t border-slate-200 flex justify-end gap-6 text-sm">
               <div>
-                <span className="text-slate-500 mr-2">净额合计</span>
+                <span className="text-slate-500 mr-2">{t('audit.chain_total_net')}</span>
                 <span className="font-medium">{formatMoney(totalNet)} €</span>
               </div>
               <div>
-                <span className="text-slate-500 mr-2">利润合计</span>
+                <span className="text-slate-500 mr-2">{t('audit.chain_total_profit')}</span>
                 <span className="font-medium">{formatMoney(totalProfit)} €</span>
               </div>
             </div>
@@ -255,11 +280,13 @@ export default function IssueChainDetail({ issueId, onClose }: Props) {
           <section className="rounded-lg border border-slate-200 bg-white">
             <div className="px-4 py-3 border-b border-slate-200">
               <h3 className="text-sm font-semibold text-slate-700">
-                变更历史（{history.length}）
+                {t('audit.chain_history_section', { count: history.length })}
               </h3>
             </div>
             {history.length === 0 ? (
-              <div className="px-4 py-3 text-sm text-slate-500">无变更记录。</div>
+              <div className="px-4 py-3 text-sm text-slate-500">
+                {t('audit.chain_history_none')}
+              </div>
             ) : (
               <div className="divide-y divide-slate-100">
                 {history.map((h) => {
@@ -288,7 +315,7 @@ export default function IssueChainDetail({ issueId, onClose }: Props) {
                           {h.old_values && (
                             <div>
                               <div className="text-xs font-medium text-slate-500 mb-1">
-                                旧值
+                                {t('audit.chain_history_old')}
                               </div>
                               <pre className="text-xs bg-slate-50 p-2 rounded overflow-x-auto max-h-48">
                                 {formatJson(h.old_values)}
@@ -298,7 +325,7 @@ export default function IssueChainDetail({ issueId, onClose }: Props) {
                           {h.new_values && (
                             <div>
                               <div className="text-xs font-medium text-slate-500 mb-1">
-                                新值
+                                {t('audit.chain_history_new')}
                               </div>
                               <pre className="text-xs bg-slate-50 p-2 rounded overflow-x-auto max-h-48">
                                 {formatJson(h.new_values)}
