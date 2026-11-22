@@ -38,6 +38,7 @@ ENV NODE_ENV=production
 ENV SERVE_WEB=1
 ENV HOST=0.0.0.0
 ENV PORT=3000
+ENV DATA_DIR=/app/data
 
 # 不以 root 用户运行应用。
 USER node

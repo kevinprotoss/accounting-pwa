@@ -487,6 +487,8 @@
     "upload_title_receipt": "扫描进货账单",
     "upload_title_expense": "扫描支出账单",
     "upload_hint": "支持多张图片，识别完成后自动创建记录",
+    "take_photo": "拍照",
+    "from_album": "从相册选择",
     "select_images": "选择图片或拍照",
     "uploading": "上传中…",
     "upload_count": "上传 {{count}} 张",

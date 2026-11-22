@@ -17,7 +17,8 @@ export default function ScanUploadDialog({
 }: Props) {
   const { t } = useTranslation();
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const albumRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,9 +37,9 @@ export default function ScanUploadDialog({
 
   function handleSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files ?? []);
+    e.target.value = '';
     if (selected.length === 0) return;
     setFiles((prev) => [...prev, ...selected]);
-    if (inputRef.current) inputRef.current.value = '';
   }
 
   function removeFile(index: number) {
@@ -80,29 +81,65 @@ export default function ScanUploadDialog({
       </div>
 
       <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-          className="w-full h-24 rounded-lg border-2 border-dashed border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50 flex flex-col items-center justify-center gap-1 disabled:opacity-60"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="w-6 h-6"
+        {/* 两个入口：拍照 / 相册 */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => cameraRef.current?.click()}
+            disabled={uploading}
+            className="h-24 rounded-lg border-2 border-dashed border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50 flex flex-col items-center justify-center gap-1 disabled:opacity-60"
           >
-            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-            <circle cx="12" cy="13" r="3" />
-          </svg>
-          <span className="text-sm">{t('scan.select_images')}</span>
-        </button>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-6 h-6"
+            >
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+              <circle cx="12" cy="13" r="3" />
+            </svg>
+            <span className="text-sm">{t('scan.take_photo')}</span>
+          </button>
 
+          <button
+            type="button"
+            onClick={() => albumRef.current?.click()}
+            disabled={uploading}
+            className="h-24 rounded-lg border-2 border-dashed border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50 flex flex-col items-center justify-center gap-1 disabled:opacity-60"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-6 h-6"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+            <span className="text-sm">{t('scan.from_album')}</span>
+          </button>
+        </div>
+
+        {/* 相机：直接唤起后置摄像头，一次一张，不能带 multiple */}
         <input
-          ref={inputRef}
+          ref={cameraRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleSelect}
+        />
+
+        {/* 相册：可多选，不能带 capture */}
+        <input
+          ref={albumRef}
           type="file"
           accept="image/*"
           multiple
