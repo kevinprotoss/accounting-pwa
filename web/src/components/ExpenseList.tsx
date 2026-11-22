@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { expensesApi, type Expense } from '../api/expenses';
 import { formatMoney } from '../lib/utils';
 import {
@@ -12,6 +13,7 @@ import {
 import ActionMenu, { type Action } from './ActionMenu';
 import ConfirmDialog from './ConfirmDialog';
 import ListFilterBar from './ListFilterBar';
+import { useFilterSummaryText } from '../hooks/useFilterSummaryText';
 import ScanTaskBell from './ScanTaskBell';
 import ScanTaskDrawer from './ScanTaskDrawer';
 import ScanUploadDialog from './ScanUploadDialog';
@@ -25,12 +27,6 @@ type Props = {
   onCreate: () => void;
   onEdit: (id: number) => void;
 };
-
-const statusOptions = [
-  { value: 'all', label: '全部类型' },
-  { value: 'input', label: '进项' },
-  { value: 'output', label: '销项' },
-];
 
 const GRID_COLS =
   'grid-cols-[minmax(90px,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)] ' +
@@ -57,6 +53,7 @@ export default function ExpenseList({
   onCreate,
   onEdit,
 }: Props) {
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const { data = [], isLoading, error } = useQuery({
     queryKey: ['expenses'],
@@ -66,6 +63,12 @@ export default function ExpenseList({
   const [deleting, setDeleting] = useState<Expense | null>(null);
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [taskDrawerOpen, setTaskDrawerOpen] = useState(false);
+
+  const statusOptions = [
+    { value: 'all', label: t('expense.status_all') },
+    { value: 'input', label: t('expense.type_input') },
+    { value: 'output', label: t('expense.type_output') },
+  ];
 
   const filtered = useMemo(
     () => filterItems(data, filter, expenseMatchKeyword, expenseMatchStatus),
@@ -108,12 +111,17 @@ export default function ExpenseList({
 
   function actionsFor(e: Expense): Action[] {
     return [
-      { key: 'edit', label: '编辑', onSelect: () => onEdit(e.id) },
-      { key: 'delete', label: '删除', danger: true, onSelect: () => setDeleting(e) },
+      { key: 'edit', label: t('common.edit'), onSelect: () => onEdit(e.id) },
+      {
+        key: 'delete',
+        label: t('common.delete'),
+        danger: true,
+        onSelect: () => setDeleting(e),
+      },
     ];
   }
 
-  const emptySummary = filterSummary(filter, statusOptions);
+  const emptySummary = useFilterSummaryText(filterSummary(filter, statusOptions));
 
   return (
     <div className="space-y-4">
@@ -122,12 +130,12 @@ export default function ExpenseList({
         onChange={patchFilter}
         onClear={clearFilter}
         statusOptions={statusOptions}
-        searchPlaceholder="搜索分类、描述、发票号、备注..."
+        searchPlaceholder={t('filter.search_expenses')}
       />
 
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-slate-500 shrink-0">
-          {isLoading ? '加载中…' : `共 ${filtered.length} 条支出`}
+          {isLoading ? t('common.loading') : t('expense.count', { count: filtered.length })}
         </p>
         <div className="flex items-center gap-1.5 md:gap-2">
           <button
@@ -146,35 +154,39 @@ export default function ExpenseList({
               <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
               <circle cx="12" cy="13" r="3" />
             </svg>
-            <span className="hidden sm:inline">扫描账单</span>
+            <span className="hidden sm:inline">{t('scan.button')}</span>
           </button>
           <ScanTaskBell onClick={() => setTaskDrawerOpen(true)} />
           <button
             onClick={onCreate}
             className="h-11 px-4 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800"
           >
-            <span className="hidden sm:inline">+ 新建支出</span>
-            <span className="sm:hidden">+ 新建</span>
+            <span className="hidden sm:inline">+ {t('expense.new')}</span>
+            <span className="sm:hidden">+ {t('common.add')}</span>
           </button>
         </div>
       </div>
 
-      {error && <p className="text-sm text-red-600">加载失败：{String(error)}</p>}
+      {error && (
+        <p className="text-sm text-red-600">
+          {t('message.load_failed', { error: String(error) })}
+        </p>
+      )}
 
       {!isLoading && data.length === 0 && (
         <div className="rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-500">
-          暂无支出记录，点击右上角「新建支出」开始。
+          {t('expense.empty_hint')}
         </div>
       )}
 
       {!isLoading && data.length > 0 && filtered.length === 0 && (
         <div className="rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-500">
-          没有匹配「{emptySummary}」的记录。
+          {t('expense.no_match', { summary: emptySummary })}
           <button
             onClick={clearFilter}
             className="ml-2 text-slate-700 underline hover:text-slate-900"
           >
-            清除筛选
+            {t('filter.clear_filter')}
           </button>
         </div>
       )}
@@ -188,25 +200,22 @@ export default function ExpenseList({
               className={`grid ${GRID_COLS} bg-slate-100 text-slate-600 text-sm`}
             >
               <div role="columnheader" className="px-3 py-2 text-left">
-                日期
+                {t('expense.date')}
               </div>
               <div role="columnheader" className="px-3 py-2 text-left">
-                分类
+                {t('expense.category')}
               </div>
               <div role="columnheader" className="px-3 py-2 text-left">
-                描述
+                {t('expense.description')}
               </div>
               <div role="columnheader" className="px-3 py-2 text-right">
-                净额 / 税额
+                {t('expense.column_net_tax')}
               </div>
-              <div
-                role="columnheader"
-                className="hidden lg:block px-3 py-2 text-center"
-              >
-                类型
+              <div role="columnheader" className="hidden lg:block px-3 py-2 text-center">
+                {t('expense.column_type')}
               </div>
               <div role="columnheader" className="px-3 py-2 text-center">
-                操作
+                {t('common.actions')}
               </div>
             </div>
 
@@ -222,7 +231,7 @@ export default function ExpenseList({
                     <span className="mr-2 text-slate-400">
                       {expanded ? '▾' : '▸'}
                     </span>
-                    {formatMonthLabel(group.month)} ({group.items.length})
+                    {formatMonthLabel(group.month, i18n.language)} ({group.items.length})
                   </div>
 
                   {expanded &&
@@ -238,7 +247,7 @@ export default function ExpenseList({
                             <span>{e.date}</span>
                             {e.needs_review === 1 && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
-                                待核对
+                                {t('expense.needs_review')}
                               </span>
                             )}
                           </div>
@@ -258,20 +267,17 @@ export default function ExpenseList({
                             {formatMoney(e.net_amount)} €
                           </div>
                           <div className="text-xs text-slate-500">
-                            税 {formatMoney(e.input_tax)} €
+                            {t('expense.tax_label')} {formatMoney(e.input_tax)} €
                           </div>
                         </div>
-                        <div
-                          role="cell"
-                          className="hidden lg:block px-3 py-2 text-center"
-                        >
+                        <div role="cell" className="hidden lg:block px-3 py-2 text-center">
                           {e.is_output_tax ? (
                             <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
-                              销项
+                              {t('expense.type_output')}
                             </span>
                           ) : (
                             <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
-                              进项
+                              {t('expense.type_input')}
                             </span>
                           )}
                         </div>
@@ -301,7 +307,7 @@ export default function ExpenseList({
                     onClick={() => toggleMonth(group.month)}
                   >
                     <span>
-                      {formatMonthLabel(group.month)} ({group.items.length})
+                      {formatMonthLabel(group.month, i18n.language)} ({group.items.length})
                     </span>
                     <span className="text-slate-400">
                       {expanded ? '▾' : '▸'}
@@ -332,12 +338,12 @@ export default function ExpenseList({
                               </span>
                               {e.is_output_tax === 1 && (
                                 <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
-                                  销项
+                                  {t('expense.type_output')}
                                 </span>
                               )}
                               {e.needs_review === 1 && (
                                 <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
-                                  待核对
+                                  {t('expense.needs_review')}
                                 </span>
                               )}
                             </div>
@@ -345,12 +351,12 @@ export default function ExpenseList({
                               {e.date} · {e.description ?? '—'}
                             </div>
                             <div className="text-sm text-slate-700 mt-1">
-                              净额{' '}
+                              {t('expense.net_amount')}{' '}
                               <span className="font-medium">
                                 {formatMoney(e.net_amount)} €
                               </span>
                               <span className="text-xs text-slate-500 ml-2">
-                                · 税 {formatMoney(e.input_tax)} €
+                                · {t('expense.tax_label')} {formatMoney(e.input_tax)} €
                               </span>
                             </div>
                           </div>
@@ -384,13 +390,15 @@ export default function ExpenseList({
 
       <ConfirmDialog
         open={!!deleting}
-        title="删除支出"
+        title={t('expense.delete_title')}
         message={
           deleting
-            ? `确定删除「${deleting.category ?? deleting.date}」？此操作不可撤销。`
+            ? t('expense.delete_confirm', {
+                label: deleting.category ?? deleting.date,
+              })
             : ''
         }
-        confirmLabel="删除"
+        confirmLabel={t('common.delete')}
         danger
         loading={deleteMutation.isPending}
         onConfirm={() => {
@@ -401,7 +409,7 @@ export default function ExpenseList({
 
       {deleteMutation.error && (
         <p className="text-sm text-red-600">
-          删除失败：{String(deleteMutation.error)}
+          {t('expense.delete_failed', { error: String(deleteMutation.error) })}
         </p>
       )}
     </div>

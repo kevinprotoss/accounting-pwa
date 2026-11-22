@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { expensesApi, type ExpenseInput } from '../api/expenses';
 import { formatMoney } from '../lib/utils';
 import AttachmentUploader from './AttachmentUploader';
@@ -42,6 +43,7 @@ type Props = {
 };
 
 export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
+  const { t } = useTranslation();
   const isEdit = expenseId !== null;
 
   const { data: existing, isLoading, error: loadError } = useQuery({
@@ -100,7 +102,7 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
 
   function handleRateChange(value: string) {
     setTaxRate(value);
-    const n = parseFloat(netAmount) || 0; 
+    const n = parseFloat(netAmount) || 0;
     const r = parseFloat(value) || 0;
     setGrossAmount((n * (1 + r / 100)).toFixed(2));
   }
@@ -149,7 +151,7 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
   if (isEdit && isLoading) {
     return (
       <div className="fixed inset-0 z-40 bg-slate-50 flex items-center justify-center md:left-56">
-        <p className="text-sm text-slate-500">加载中…</p>
+        <p className="text-sm text-slate-500">{t('common.loading')}</p>
       </div>
     );
   }
@@ -157,12 +159,14 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
   if (isEdit && loadError) {
     return (
       <div className="fixed inset-0 z-40 bg-slate-50 flex flex-col items-center justify-center gap-3 md:left-56">
-        <p className="text-sm text-red-600">加载失败：{String(loadError)}</p>
+        <p className="text-sm text-red-600">
+          {t('message.load_failed', { error: String(loadError) })}
+        </p>
         <button
           onClick={onClose}
           className="h-11 px-4 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100"
         >
-          返回列表
+          {t('common.back_to_list')}
         </button>
       </div>
     );
@@ -172,7 +176,7 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
     <div className="fixed inset-0 z-40 bg-slate-50 flex flex-col md:left-56">
       <header className="shrink-0 bg-white border-b border-slate-200 px-4 py-3">
         <h2 className="text-base font-semibold">
-          {isEdit ? '编辑支出' : '新建支出'}
+          {isEdit ? t('expense.edit') : t('expense.new')}
         </h2>
       </header>
 
@@ -183,7 +187,9 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
           )}
           <div className="rounded-lg border border-slate-200 bg-white p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
             <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">日期 *</span>
+              <span className="block text-xs font-medium text-slate-600 mb-1">
+                {t('expense.date')} *
+              </span>
               <input
                 type="date"
                 className={inputClass}
@@ -193,7 +199,9 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
               />
             </label>
             <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">分类</span>
+              <span className="block text-xs font-medium text-slate-600 mb-1">
+                {t('expense.category')}
+              </span>
               <input
                 className={inputClass}
                 list="expense-categories"
@@ -207,7 +215,9 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
               </datalist>
             </label>
             <label className="block md:col-span-2">
-              <span className="block text-xs font-medium text-slate-600 mb-1">描述</span>
+              <span className="block text-xs font-medium text-slate-600 mb-1">
+                {t('expense.description')}
+              </span>
               <input
                 className={inputClass}
                 value={description}
@@ -215,7 +225,9 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
               />
             </label>
             <label className="block md:col-span-2">
-              <span className="block text-xs font-medium text-slate-600 mb-1">供应商发票号</span>
+              <span className="block text-xs font-medium text-slate-600 mb-1">
+                {t('expense.supplier_invoice')}
+              </span>
               <input
                 className={inputClass}
                 value={supplierInvoice}
@@ -226,7 +238,7 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
               <AttachmentUploader
                 paths={attachments}
                 onChange={setAttachments}
-                label="支出证明 / 发票"
+                label={t('expense.attachment')}
               />
             </div>
           </div>
@@ -240,7 +252,7 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
                 onChange={(e) => handleOutputToggle(e.target.checked)}
               />
               <span className="text-sm font-semibold text-slate-700">
-                销项税（如 1% 规则）
+                {t('expense.is_output_tax')}
               </span>
             </label>
 
@@ -249,7 +261,7 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <label className="block">
                     <span className="block text-xs font-medium text-slate-600 mb-1">
-                      净额
+                      {t('expense.net_amount')}
                     </span>
                     <input
                       type="number"
@@ -262,7 +274,7 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
                   </label>
                   <label className="block">
                     <span className="block text-xs font-medium text-slate-600 mb-1">
-                      含税金额
+                      {t('expense.gross_amount')}
                     </span>
                     <input
                       type="number"
@@ -277,7 +289,7 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
 
                 <div>
                   <span className="block text-xs font-medium text-slate-600 mb-1">
-                    税率%
+                    {t('expense.tax_rate')}
                   </span>
                   <div className="flex items-center gap-2">
                     <input
@@ -310,7 +322,7 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
 
                 <div className="pt-1 border-t border-slate-100">
                   <p className="text-sm text-slate-600">
-                    进项税：
+                    {t('expense.input_tax')}：
                     <strong className="ml-1 text-slate-900">
                       {formatMoney(inputTax)} €
                     </strong>
@@ -322,7 +334,7 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
             {isOutputTax && (
               <label className="block">
                 <span className="block text-xs font-medium text-slate-600 mb-1">
-                  销项税金额
+                  {t('expense.output_tax_amount')}
                 </span>
                 <input
                   type="number"
@@ -333,7 +345,7 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
                   onChange={(e) => setOutputTaxAmount(e.target.value)}
                 />
                 <span className="block text-xs text-slate-500 mt-1">
-                  例如 1% 规则下为车辆总价的 1%
+                  {t('expense.output_tax_hint')}
                 </span>
               </label>
             )}
@@ -341,7 +353,9 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
 
           <div className="rounded-lg border border-slate-200 bg-white p-4">
             <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">备注</span>
+              <span className="block text-xs font-medium text-slate-600 mb-1">
+                {t('expense.remarks')}
+              </span>
               <textarea
                 className={inputClass}
                 rows={2}
@@ -362,7 +376,7 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
             onClick={onClose}
             className="flex-1 md:flex-none md:min-w-[100px] h-11 px-4 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100"
           >
-            取消
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
@@ -370,7 +384,7 @@ export default function ExpenseForm({ expenseId, onClose, onSaved }: Props) {
             disabled={saveMutation.isPending}
             className="flex-1 md:flex-none md:min-w-[100px] h-11 px-4 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-60"
           >
-            {saveMutation.isPending ? '保存中…' : '保存'}
+            {saveMutation.isPending ? t('common.saving') : t('common.save')}
           </button>
         </div>
       </footer>

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { customersApi, type Customer } from '../api/customers';
 import ActionMenu, { type Action } from './ActionMenu';
 import ConfirmDialog from './ConfirmDialog';
@@ -30,6 +31,7 @@ export default function CustomerList({
   onCreate,
   onEdit,
 }: Props) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data = [], isLoading, error } = useQuery({
     queryKey: ['customers'],
@@ -54,21 +56,29 @@ export default function CustomerList({
 
   function actionsFor(c: Customer): Action[] {
     return [
-      { key: 'edit', label: '编辑', onSelect: () => onEdit(c.id) },
-      { key: 'delete', label: '删除', danger: true, onSelect: () => setDeleting(c) },
+      { key: 'edit', label: t('common.edit'), onSelect: () => onEdit(c.id) },
+      {
+        key: 'delete',
+        label: t('common.delete'),
+        danger: true,
+        onSelect: () => setDeleting(c),
+      },
     ];
   }
 
+  const countText = search.trim()
+    ? t('customer.count_filtered', { count: filtered.length })
+    : t('customer.count', { count: data.length });
+
   return (
     <div className="space-y-4">
-      {/* 搜索框 */}
       <div className="-mx-4 px-4 md:mx-0 md:px-0">
         <div className="relative">
           <input
             type="text"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="搜索名称、地址、USt-IdNr.、邮箱、电话..."
+            placeholder={t('filter.search_customers')}
             className="w-full h-10 rounded-md border border-slate-300 pl-3 pr-9 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
           />
           {search && (
@@ -76,7 +86,7 @@ export default function CustomerList({
               type="button"
               onClick={() => onSearchChange('')}
               className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-700"
-              aria-label="清空"
+              aria-label={t('common.remove')}
             >
               ✕
             </button>
@@ -84,38 +94,38 @@ export default function CustomerList({
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">
-          {isLoading
-            ? '加载中…'
-            : search.trim()
-            ? `共 ${filtered.length} 位客户（筛选）`
-            : `共 ${data.length} 位客户`}
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm text-slate-500 shrink-0">
+          {isLoading ? t('common.loading') : countText}
         </p>
         <button
           onClick={onCreate}
-          className="h-11 px-4 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800"
+          className="h-11 px-4 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800 whitespace-nowrap"
         >
-          + 新建客户
+          + {t('customer.new')}
         </button>
       </div>
 
-      {error && <p className="text-sm text-red-600">加载失败：{String(error)}</p>}
+      {error && (
+        <p className="text-sm text-red-600">
+          {t('message.load_failed', { error: String(error) })}
+        </p>
+      )}
 
       {!isLoading && data.length === 0 && (
         <div className="rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-500">
-          暂无客户，点击右上角「新建客户」开始。
+          {t('customer.empty_hint')}
         </div>
       )}
 
       {!isLoading && data.length > 0 && filtered.length === 0 && (
         <div className="rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-500">
-          没有匹配「{search}」的客户。
+          {t('customer.no_match', { keyword: search })}
           <button
             onClick={() => onSearchChange('')}
             className="ml-2 text-slate-700 underline hover:text-slate-900"
           >
-            清除搜索
+            {t('customer.clear_search')}
           </button>
         </div>
       )}
@@ -128,11 +138,13 @@ export default function CustomerList({
               <thead className="bg-slate-100 text-slate-600">
                 <tr>
                   <th className="px-3 py-2 text-left">ID</th>
-                  <th className="px-3 py-2 text-left">名称</th>
-                  <th className="px-3 py-2 text-left">城市</th>
-                  <th className="px-3 py-2 text-left">USt-IdNr.</th>
-                  <th className="px-3 py-2 text-left">邮箱</th>
-                  <th className="px-3 py-2 text-center w-16">操作</th>
+                  <th className="px-3 py-2 text-left">{t('customer.name')}</th>
+                  <th className="px-3 py-2 text-left">{t('customer.city')}</th>
+                  <th className="px-3 py-2 text-left">{t('customer.vat_id')}</th>
+                  <th className="px-3 py-2 text-left">{t('customer.email')}</th>
+                  <th className="px-3 py-2 text-center w-16">
+                    {t('common.actions')}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -195,9 +207,11 @@ export default function CustomerList({
 
       <ConfirmDialog
         open={!!deleting}
-        title="删除客户"
-        message={deleting ? `确定删除客户「${deleting.name}」？此操作不可撤销。` : ''}
-        confirmLabel="删除"
+        title={t('customer.title')}
+        message={
+          deleting ? t('customer.delete_confirm', { name: deleting.name }) : ''
+        }
+        confirmLabel={t('common.delete')}
         danger
         loading={deleteMutation.isPending}
         onConfirm={() => {
@@ -207,7 +221,9 @@ export default function CustomerList({
       />
 
       {deleteMutation.error && (
-        <p className="text-sm text-red-600">删除失败：{String(deleteMutation.error)}</p>
+        <p className="text-sm text-red-600">
+          {t('message.delete_failed', { error: String(deleteMutation.error) })}
+        </p>
       )}
     </div>
   );

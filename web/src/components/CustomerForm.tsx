@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { customersApi, type CustomerInput } from '../api/customers';
 
 const inputClass =
@@ -18,6 +19,17 @@ function emptyInput(): CustomerInput {
   };
 }
 
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="block">
+      <span className="block text-xs font-medium text-slate-600 mb-1">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
 type Props = {
   customerId: number | null;
   onClose: () => void;
@@ -25,6 +37,7 @@ type Props = {
 };
 
 export default function CustomerForm({ customerId, onClose, onSaved }: Props) {
+  const { t } = useTranslation();
   const isEdit = customerId !== null;
   const queryClient = useQueryClient();
 
@@ -78,7 +91,7 @@ export default function CustomerForm({ customerId, onClose, onSaved }: Props) {
     e.preventDefault();
     setError(null);
     if (!form.name.trim()) {
-      setError('请填写名称');
+      setError(t('message.fill_required'));
       return;
     }
     saveMutation.mutate({ ...form, name: form.name.trim() });
@@ -87,7 +100,7 @@ export default function CustomerForm({ customerId, onClose, onSaved }: Props) {
   if (isEdit && isLoading) {
     return (
       <div className="fixed inset-0 z-40 bg-slate-50 flex items-center justify-center md:left-56">
-        <p className="text-sm text-slate-500">加载中…</p>
+        <p className="text-sm text-slate-500">{t('common.loading')}</p>
       </div>
     );
   }
@@ -95,12 +108,14 @@ export default function CustomerForm({ customerId, onClose, onSaved }: Props) {
   if (isEdit && loadError) {
     return (
       <div className="fixed inset-0 z-40 bg-slate-50 flex flex-col items-center justify-center gap-3 md:left-56">
-        <p className="text-sm text-red-600">加载失败：{String(loadError)}</p>
+        <p className="text-sm text-red-600">
+          {t('message.load_failed', { error: String(loadError) })}
+        </p>
         <button
           onClick={onClose}
           className="h-11 px-4 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100"
         >
-          返回列表
+          {t('common.back_to_list')}
         </button>
       </div>
     );
@@ -110,14 +125,14 @@ export default function CustomerForm({ customerId, onClose, onSaved }: Props) {
     <div className="fixed inset-0 z-40 bg-slate-50 flex flex-col md:left-56">
       <header className="shrink-0 bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between">
         <h2 className="text-base font-semibold">
-          {isEdit ? '编辑客户' : '新建客户'}
+          {isEdit ? t('customer.edit') : t('customer.new')}
         </h2>
         <button
           type="button"
           onClick={onClose}
-          className="h-11 px-3 text-sm text-slate-600 hover:underline"
+          className="h-11 px-3 text-sm text-slate-600 hover:underline whitespace-nowrap"
         >
-          返回列表
+          {t('common.back_to_list')}
         </button>
       </header>
 
@@ -128,8 +143,7 @@ export default function CustomerForm({ customerId, onClose, onSaved }: Props) {
       >
         <div className="max-w-3xl mx-auto p-4 md:p-6 space-y-4">
           <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
-            <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">名称 *</span>
+            <Field label={`${t('customer.name')} *`}>
               <input
                 className={inputClass}
                 value={form.name}
@@ -137,68 +151,61 @@ export default function CustomerForm({ customerId, onClose, onSaved }: Props) {
                 required
                 autoFocus
               />
-            </label>
-            <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">街道</span>
+            </Field>
+            <Field label={t('customer.street')}>
               <input
                 className={inputClass}
                 value={form.street ?? ''}
                 onChange={(e) => set('street', e.target.value)}
               />
-            </label>
+            </Field>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <label className="block">
-                <span className="block text-xs font-medium text-slate-600 mb-1">邮编</span>
+              <Field label={t('customer.postcode')}>
                 <input
                   className={inputClass}
                   value={form.postcode ?? ''}
                   onChange={(e) => set('postcode', e.target.value)}
                 />
-              </label>
+              </Field>
               <div className="sm:col-span-2">
-                <label className="block">
-                  <span className="block text-xs font-medium text-slate-600 mb-1">城市</span>
+                <Field label={t('customer.city')}>
                   <input
                     className={inputClass}
                     value={form.city ?? ''}
                     onChange={(e) => set('city', e.target.value)}
                   />
-                </label>
+                </Field>
               </div>
             </div>
-            <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">国家</span>
+            <Field label={t('customer.country')}>
               <input
                 className={inputClass}
                 value={form.country ?? ''}
                 onChange={(e) => set('country', e.target.value)}
               />
-            </label>
-            <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">USt-IdNr.</span>
+            </Field>
+            <Field label={t('customer.vat_id')}>
               <input
                 className={inputClass}
                 value={form.ust_idnr ?? ''}
                 onChange={(e) => set('ust_idnr', e.target.value)}
               />
-            </label>
-            <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">邮箱</span>
+            </Field>
+            <Field label={t('customer.email')}>
               <input
                 type="email"
                 className={inputClass}
                 value={form.email ?? ''}
                 onChange={(e) => set('email', e.target.value)}
               />
-            </label>
-            <label className="block">
-              <span className="block text-xs font-medium text-slate-600 mb-1">电话</span>
+            </Field>
+            <Field label={t('customer.phone')}>
               <input
                 className={inputClass}
                 value={form.phone ?? ''}
                 onChange={(e) => set('phone', e.target.value)}
               />
-            </label>
+            </Field>
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
@@ -210,17 +217,17 @@ export default function CustomerForm({ customerId, onClose, onSaved }: Props) {
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 md:flex-none md:min-w-[100px] h-11 px-4 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100"
+            className="flex-1 md:flex-none md:min-w-[100px] h-11 px-4 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100 whitespace-nowrap"
           >
-            取消
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
             form="customer-form"
             disabled={saveMutation.isPending}
-            className="flex-1 md:flex-none md:min-w-[100px] h-11 px-4 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-60"
+            className="flex-1 md:flex-none md:min-w-[100px] h-11 px-4 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-60 whitespace-nowrap"
           >
-            {saveMutation.isPending ? '保存中…' : '保存'}
+            {saveMutation.isPending ? t('common.saving') : t('common.save')}
           </button>
         </div>
       </footer>

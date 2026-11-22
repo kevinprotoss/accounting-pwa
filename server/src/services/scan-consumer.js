@@ -6,6 +6,9 @@ import { invoiceToReceipt, invoiceToExpense } from './scan-mapping.js';
 export const scanEvents = new EventEmitter();
 scanEvents.setMaxListeners(50);
 
+const ACTIVE_INTERVAL_MS = 3000;   // 有活跃任务时 3s
+const IDLE_INTERVAL_MS = 30_000;   // 空转时 30s，仅做一次本地 COUNT，不发任何网络请求
+
 let snapshot = [];
 let running = false;
 let timer = null;
@@ -56,6 +59,19 @@ function rebuildSnapshot() {
 function emitUpdate() {
   rebuildSnapshot();
   scanEvents.emit('update', snapshot);
+}
+
+/**
+ * 本地有多少"未终态"任务。这是决定是否要打 OCR 的唯一开关。
+ * 终态：consumed / failed / consume_failed —— 不再需要 OCR。
+ */
+function countActiveJobs() {
+  return db
+    .prepare(
+      `SELECT COUNT(*) AS c FROM scan_jobs
+       WHERE status IN ('submitting','pending','processing','ready')`
+    )
+    .get().c;
 }
 
 async function refreshFromPython() {
@@ -214,34 +230,50 @@ async function consumeReadyJobs() {
   }
 }
 
+function scheduleNext(ms) {
+  if (timer) clearTimeout(timer);
+  timer = setTimeout(tick, ms);
+}
+
 async function tick() {
   if (running) return;
   running = true;
+  let active = 0;
   try {
-    await refreshFromPython();
-    await consumeReadyJobs();
-    emitUpdate();
+    active = countActiveJobs();
+    if (active > 0) {
+      await refreshFromPython();
+      await consumeReadyJobs();
+      emitUpdate();
+    }
+    // active === 0：跳过 OCR 请求、跳过 SSE 推送，只做一次本地 COUNT
   } catch (err) {
     console.error('[scan] tick failed:', err.message);
   } finally {
     running = false;
+    // 处理完后再确认一次：可能这轮把最后一个任务消费掉了
+    scheduleNext(countActiveJobs() > 0 ? ACTIVE_INTERVAL_MS : IDLE_INTERVAL_MS);
   }
 }
 
-export function startScanConsumer(intervalMs = 3000) {
+export function startScanConsumer() {
   if (timer) return;
   rebuildSnapshot();
-  tick();
-  timer = setInterval(tick, intervalMs);
+  scheduleNext(0); // 启动立即跑一次；空库时它会自动进入 30s 空转
 }
 
 export function stopScanConsumer() {
   if (timer) {
-    clearInterval(timer);
+    clearTimeout(timer);
     timer = null;
   }
 }
 
+/**
+ * 外部在"上传新扫描任务后"调用：立即唤醒消费者，
+ * 不必等到下一个 IDLE_INTERVAL。
+ */
 export function notifyScanUpdate() {
   emitUpdate();
+  if (!running) scheduleNext(0);
 }

@@ -19,7 +19,36 @@ import scansRoutes from './routes/scans.js';
 import { startScanConsumer } from './services/scan-consumer.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const app = Fastify({ logger: true });
+
+// ── SSL 读取必须在 Fastify() 之前 ──────────────────────────
+const port = Number(process.env.PORT || 3000);
+const host = process.env.HOST || '0.0.0.0';
+const sslCert = process.env.SSL_CERTFILE;
+const sslKey = process.env.SSL_KEYFILE;
+
+let httpsOptions = null;
+if (sslCert && sslKey) {
+  try {
+    httpsOptions = {
+      cert: fs.readFileSync(sslCert),
+      key: fs.readFileSync(sslKey),
+    };
+  } catch (err) {
+    console.error(
+      `[https] 证书读取失败，回退 HTTP。cert=${sslCert} key=${sslKey} err=${err.message}`
+    );
+  }
+} else if (sslCert || sslKey) {
+  console.warn(
+    '[https] SSL_CERTFILE 和 SSL_KEYFILE 需同时设置，当前仅设置其一，使用 HTTP'
+  );
+}
+
+// ── https 进构造函数，不是 listen ───────────────────────────
+const app = Fastify({
+  logger: true,
+  ...(httpsOptions ? { https: httpsOptions } : {}),
+});
 
 app.register(multipart, {
   limits: { fileSize: 20 * 1024 * 1024, files: 10 },
@@ -58,22 +87,8 @@ if (process.env.SERVE_WEB === '1') {
   }
 }
 
-const port = Number(process.env.PORT || 3000);
-const host = process.env.HOST || '0.0.0.0';
-const sslCert = process.env.SSL_CERTFILE;
-const sslKey = process.env.SSL_KEYFILE;
-const useHttps = sslCert && sslKey && fs.existsSync(sslCert) && fs.existsSync(sslKey);
-
-const listenOptions = { port, host };
-if (useHttps) {
-  listenOptions.https = {
-    cert: fs.readFileSync(sslCert),
-    key: fs.readFileSync(sslKey),
-  };
-}
-
-app.listen(listenOptions).then(() => {
-  const protocol = useHttps ? 'https' : 'http';
+app.listen({ port, host }).then(() => {
+  const protocol = httpsOptions ? 'https' : 'http';
   app.log.info(`Server on ${protocol}://${host}:${port}`);
-  startScanConsumer(3000);
+  startScanConsumer();
 });

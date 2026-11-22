@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState, useRef, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
   issuesApi,
   waitForInvoicePdf,
@@ -17,6 +18,7 @@ import {
 import ActionMenu, { type Action } from './ActionMenu';
 import ConfirmDialog from './ConfirmDialog';
 import ListFilterBar from './ListFilterBar';
+import { useFilterSummaryText } from '../hooks/useFilterSummaryText';
 
 type Props = {
   filter: ListFilter;
@@ -30,21 +32,6 @@ type Props = {
   onAutoWaitConsumed?: () => void;
 };
 
-const statusLabels: Record<string, string> = {
-  open: '待付款',
-  paid: '已付款',
-};
-
-const statusOptions = [
-  { value: 'all', label: '全部状态' },
-  { value: 'open', label: '待付款' },
-  { value: 'paid', label: '已付款' },
-];
-
-type PdfState = 'idle' | 'generating' | 'regenerate' | 'download';
-
-// Grid 列定义：单号 minmax(200px,1.5fr)、日期 minmax(90px,1fr)、其余 minmax(0,1fr)
-// md 5 列、lg 7 列、xl 8 列，通过 hidden 显隐让可见子元素数量与列数匹配
 const GRID_COLS =
   'grid-cols-[minmax(200px,1.5fr)_minmax(90px,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] ' +
   'lg:grid-cols-[minmax(200px,1.5fr)_minmax(90px,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] ' +
@@ -60,6 +47,8 @@ function issueMatchStatus(r: IssueSummary, status: string): boolean {
   return r.status === status;
 }
 
+type PdfState = 'idle' | 'generating' | 'regenerate' | 'download';
+
 export default function IssueList({
   filter,
   onFilterChange,
@@ -71,11 +60,23 @@ export default function IssueList({
   autoWaitId,
   onAutoWaitConsumed,
 }: Props) {
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const { data = [], isLoading, error } = useQuery({
     queryKey: ['issues'],
     queryFn: issuesApi.list,
   });
+
+  const statusOptions = [
+    { value: 'all', label: t('issue.status_all') },
+    { value: 'open', label: t('issue.status_open') },
+    { value: 'paid', label: t('issue.status_paid') },
+  ];
+
+  const statusLabels: Record<string, string> = {
+    open: t('issue.status_open'),
+    paid: t('issue.status_paid'),
+  };
 
   const [deleting, setDeleting] = useState<IssueSummary | null>(null);
   const [pdfStates, setPdfStates] = useState<Record<number, PdfState>>({});
@@ -114,7 +115,7 @@ export default function IssueList({
   function patchFilter(next: Partial<ListFilter>) {
     onFilterChange(next);
   }
-  
+
   function clearFilter() {
     onFilterClear();
   }
@@ -196,21 +197,26 @@ export default function IssueList({
 
   function actionsFor(r: IssueSummary): Action[] {
     return [
-      { key: 'edit', label: '编辑', onSelect: () => onEdit(r.id) },
-      { key: 'delete', label: '删除', danger: true, onSelect: () => setDeleting(r) },
+      { key: 'edit', label: t('common.edit'), onSelect: () => onEdit(r.id) },
+      {
+        key: 'delete',
+        label: t('common.delete'),
+        danger: true,
+        onSelect: () => setDeleting(r),
+      },
     ];
   }
 
   function pdfLabel(state: PdfState): string {
     switch (state) {
       case 'download':
-        return '下载';
+        return t('issue.pdf_download');
       case 'generating':
-        return '生成中...';
+        return t('issue.pdf_generating');
       case 'regenerate':
-        return '重新生成';
+        return t('issue.pdf_regenerate');
       default:
-        return '生成';
+        return t('issue.pdf_generate');
     }
   }
 
@@ -243,7 +249,7 @@ export default function IssueList({
     return r.status === 'paid';
   }
 
-  const emptySummary = filterSummary(filter, statusOptions);
+  const emptySummary = useFilterSummaryText(filterSummary(filter, statusOptions));
 
   return (
     <div className="space-y-4">
@@ -252,82 +258,76 @@ export default function IssueList({
         onChange={patchFilter}
         onClear={clearFilter}
         statusOptions={statusOptions}
-        searchPlaceholder="搜索单号、发票号、客户、备注..."
+        searchPlaceholder={t('filter.search_issues')}
       />
 
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-500">
-          {isLoading ? '加载中…' : `共 ${filtered.length} 张销售单`}
+          {isLoading ? t('common.loading') : t('issue.count', { count: filtered.length })}
         </p>
         <button
           onClick={onCreate}
           className="h-11 px-4 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800"
         >
-          + 新建销售单
+          + {t('issue.new')}
         </button>
       </div>
 
-      {error && <p className="text-sm text-red-600">加载失败：{String(error)}</p>}
+      {error && (
+        <p className="text-sm text-red-600">
+          {t('message.load_failed', { error: String(error) })}
+        </p>
+      )}
 
       {!isLoading && data.length === 0 && (
         <div className="rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-500">
-          暂无销售单，点击右上角「新建销售单」开始。
+          {t('issue.empty_hint')}
         </div>
       )}
 
       {!isLoading && data.length > 0 && filtered.length === 0 && (
         <div className="rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-500">
-          没有匹配「{emptySummary}」的单据。
+          {t('issue.no_match', { summary: emptySummary })}
           <button
             onClick={clearFilter}
             className="ml-2 text-slate-700 underline hover:text-slate-900"
           >
-            清除筛选
+            {t('filter.clear_filter')}
           </button>
         </div>
       )}
 
       {filtered.length > 0 && (
         <>
-          {/* 桌面表格：Grid + minmax */}
+          {/* 桌面表格 */}
           <div className="hidden md:block rounded-lg border border-slate-200 bg-white overflow-hidden">
-            {/* 表头 */}
             <div
               role="row"
               className={`grid ${GRID_COLS} bg-slate-100 text-slate-600 text-sm`}
             >
               <div role="columnheader" className="px-3 py-2 text-left">
-                单号
+                {t('issue.number')}
               </div>
               <div role="columnheader" className="px-3 py-2 text-left">
-                日期
+                {t('issue.date')}
               </div>
               <div role="columnheader" className="px-3 py-2 text-left">
-                客户
+                {t('issue.customer_section')}
               </div>
-              <div
-                role="columnheader"
-                className="hidden xl:block px-3 py-2 text-left"
-              >
-                发票号
+              <div role="columnheader" className="hidden xl:block px-3 py-2 text-left">
+                {t('issue.invoice_number')}
               </div>
-              <div
-                role="columnheader"
-                className="hidden lg:block px-3 py-2 text-right"
-              >
-                含税 / 净额
+              <div role="columnheader" className="hidden lg:block px-3 py-2 text-right">
+                {t('issue.column_gross_net')}
               </div>
               <div role="columnheader" className="px-3 py-2 text-center">
-                发票 PDF
+                {t('issue.column_pdf')}
               </div>
-              <div
-                role="columnheader"
-                className="hidden lg:block px-3 py-2 text-center"
-              >
-                备注
+              <div role="columnheader" className="hidden lg:block px-3 py-2 text-center">
+                {t('issue.remarks')}
               </div>
               <div role="columnheader" className="px-3 py-2 text-center">
-                操作
+                {t('common.actions')}
               </div>
             </div>
 
@@ -344,7 +344,7 @@ export default function IssueList({
                     <span className="mr-2 text-slate-400">
                       {expanded ? '▾' : '▸'}
                     </span>
-                    {formatMonthLabel(group.month)} ({group.items.length})
+                    {formatMonthLabel(group.month, i18n.language)} ({group.items.length})
                   </div>
 
                   {expanded &&
@@ -378,7 +378,7 @@ export default function IssueList({
                               </span>
                               {r.is_export === 1 && (
                                 <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
-                                  出口
+                                  {t('issue.export_badge')}
                                 </span>
                               )}
                             </div>
@@ -397,28 +397,19 @@ export default function IssueList({
                           </div>
 
                           {/* 发票号（xl） */}
-                          <div
-                            role="cell"
-                            className="hidden xl:block px-3 py-2 min-w-0"
-                          >
-                            <div
-                              className="truncate"
-                              title={r.invoice_number ?? ''}
-                            >
+                          <div role="cell" className="hidden xl:block px-3 py-2 min-w-0">
+                            <div className="truncate" title={r.invoice_number ?? ''}>
                               {r.invoice_number ?? '—'}
                             </div>
                           </div>
 
                           {/* 含税/净额（lg+） */}
-                          <div
-                            role="cell"
-                            className="hidden lg:block px-3 py-2 text-right"
-                          >
+                          <div role="cell" className="hidden lg:block px-3 py-2 text-right">
                             <div className="font-medium">
                               {formatMoney(r.gross_total)} €
                             </div>
                             <div className="text-xs text-slate-500">
-                              净 {formatMoney(r.net_total)} €
+                              {t('issue.amount_net')} {formatMoney(r.net_total)} €
                             </div>
                           </div>
 
@@ -428,10 +419,7 @@ export default function IssueList({
                           </div>
 
                           {/* 备注（lg+） */}
-                          <div
-                            role="cell"
-                            className="hidden lg:block px-3 py-2 text-center min-w-0"
-                          >
+                          <div role="cell" className="hidden lg:block px-3 py-2 text-center min-w-0">
                             <div className="truncate" title={r.remarks ?? ''}>
                               {r.remarks || '—'}
                             </div>
@@ -465,7 +453,7 @@ export default function IssueList({
                     onClick={() => toggleMonth(group.month)}
                   >
                     <span>
-                      {formatMonthLabel(group.month)} ({group.items.length})
+                      {formatMonthLabel(group.month, i18n.language)} ({group.items.length})
                     </span>
                     <span className="text-slate-400">
                       {expanded ? '▾' : '▸'}
@@ -480,9 +468,7 @@ export default function IssueList({
                             key={r.id}
                             className={
                               'relative rounded-lg border border-slate-200 bg-white border-l-4 ' +
-                              (paid
-                                ? 'border-l-green-500'
-                                : 'border-l-amber-500')
+                              (paid ? 'border-l-green-500' : 'border-l-amber-500')
                             }
                           >
                             <div
@@ -503,7 +489,7 @@ export default function IssueList({
                                 </span>
                                 {r.is_export === 1 && (
                                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
-                                    出口
+                                    {t('issue.export_badge')}
                                   </span>
                                 )}
                               </div>
@@ -511,19 +497,17 @@ export default function IssueList({
                                 {r.date} · {r.customer_name ?? '—'}
                               </div>
                               <div className="text-sm text-slate-700 mt-1">
-                                含税{' '}
+                                {t('issue.amount_gross')}{' '}
                                 <span className="font-medium">
                                   {formatMoney(r.gross_total)} €
                                 </span>
                                 <span className="text-xs text-slate-500 ml-2">
-                                  · 净 {formatMoney(r.net_total)} €
+                                  · {t('issue.amount_net')} {formatMoney(r.net_total)} €
                                 </span>
                               </div>
                               <div className="text-xs mt-0.5">
                                 <span
-                                  className={
-                                    paid ? 'text-green-700' : 'text-amber-700'
-                                  }
+                                  className={paid ? 'text-green-700' : 'text-amber-700'}
                                 >
                                   {statusLabels[r.status] ?? r.status}
                                 </span>
@@ -555,13 +539,13 @@ export default function IssueList({
 
       <ConfirmDialog
         open={!!deleting}
-        title="删除销售单"
+        title={t('issue.delete_title')}
         message={
           deleting
-            ? `确定删除销售单「${deleting.issue_number}」？删除后库存会自动释放，发票 PDF 会一并移除。`
+            ? t('issue.delete_confirm', { number: deleting.issue_number })
             : ''
         }
-        confirmLabel="删除"
+        confirmLabel={t('common.delete')}
         danger
         loading={deleteMutation.isPending}
         onConfirm={() => {
@@ -572,7 +556,7 @@ export default function IssueList({
 
       {deleteMutation.error && (
         <p className="text-sm text-red-600">
-          删除失败：{String(deleteMutation.error)}
+          {t('issue.delete_failed', { error: String(deleteMutation.error) })}
         </p>
       )}
     </div>

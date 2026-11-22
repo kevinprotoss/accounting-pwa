@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { receiptsApi, type ReceiptSummary } from '../api/receipts';
 import { formatMoney } from '../lib/utils';
 import {
@@ -12,6 +13,7 @@ import {
 import ActionMenu, { type Action } from './ActionMenu';
 import ConfirmDialog from './ConfirmDialog';
 import ListFilterBar from './ListFilterBar';
+import { useFilterSummaryText } from '../hooks/useFilterSummaryText';
 import ScanTaskBell from './ScanTaskBell';
 import ScanTaskDrawer from './ScanTaskDrawer';
 import ScanUploadDialog from './ScanUploadDialog';
@@ -25,12 +27,6 @@ type Props = {
   onCreate: () => void;
   onEdit: (id: number) => void;
 };
-
-const statusOptions = [
-  { value: 'all', label: '全部状态' },
-  { value: 'unused', label: '未使用' },
-  { value: 'used', label: '已使用' },
-];
 
 const GRID_COLS =
   'grid-cols-[minmax(200px,1.5fr)_minmax(90px,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] ' +
@@ -57,6 +53,7 @@ export default function ReceiptList({
   onCreate,
   onEdit,
 }: Props) {
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const { data = [], isLoading, error } = useQuery({
     queryKey: ['receipts'],
@@ -66,6 +63,12 @@ export default function ReceiptList({
   const [deleting, setDeleting] = useState<ReceiptSummary | null>(null);
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [taskDrawerOpen, setTaskDrawerOpen] = useState(false);
+
+  const statusOptions = [
+    { value: 'all', label: t('receipt.status_all') },
+    { value: 'unused', label: t('receipt.status_unused') },
+    { value: 'used', label: t('receipt.status_used') },
+  ];
 
   const filtered = useMemo(
     () => filterItems(data, filter, receiptMatchKeyword, receiptMatchStatus),
@@ -108,12 +111,17 @@ export default function ReceiptList({
 
   function actionsFor(r: ReceiptSummary): Action[] {
     return [
-      { key: 'edit', label: '编辑', onSelect: () => onEdit(r.id) },
-      { key: 'delete', label: '删除', danger: true, onSelect: () => setDeleting(r) },
+      { key: 'edit', label: t('common.edit'), onSelect: () => onEdit(r.id) },
+      {
+        key: 'delete',
+        label: t('common.delete'),
+        danger: true,
+        onSelect: () => setDeleting(r),
+      },
     ];
   }
 
-  const emptySummary = filterSummary(filter, statusOptions);
+  const emptySummary = useFilterSummaryText(filterSummary(filter, statusOptions));
 
   return (
     <div className="space-y-4">
@@ -122,17 +130,19 @@ export default function ReceiptList({
         onChange={patchFilter}
         onClear={clearFilter}
         statusOptions={statusOptions}
-        searchPlaceholder="搜索单号、供应商、发票号、备注..."
+        searchPlaceholder={t('filter.search_receipts')}
       />
 
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <p className="text-sm text-slate-500 shrink-0">
-          {isLoading ? '加载中…' : `共 ${filtered.length} 张进货单`}
+          {isLoading
+            ? t('common.loading')
+            : t('receipt.count', { count: filtered.length })}
         </p>
-        <div className="flex items-center gap-1.5 md:gap-2">
+        <div className="flex items-center gap-1.5 md:gap-2 flex-wrap justify-end">
           <button
             onClick={() => setScanDialogOpen(true)}
-            className="h-11 px-3 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center gap-1.5"
+            className="h-11 px-3 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100 flex items-center gap-1.5 whitespace-nowrap"
           >
             <svg
               viewBox="0 0 24 24"
@@ -146,35 +156,39 @@ export default function ReceiptList({
               <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
               <circle cx="12" cy="13" r="3" />
             </svg>
-            <span className="hidden sm:inline">扫描账单</span>
+            <span className="hidden sm:inline">{t('scan.button')}</span>
           </button>
           <ScanTaskBell onClick={() => setTaskDrawerOpen(true)} />
           <button
             onClick={onCreate}
-            className="h-11 px-4 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800"
+            className="h-11 px-4 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800 whitespace-nowrap"
           >
-            <span className="hidden sm:inline">+ 新建进货单</span>
-            <span className="sm:hidden">+ 新建</span>
+            <span className="hidden sm:inline">+ {t('receipt.new')}</span>
+            <span className="sm:hidden">+ {t('common.add')}</span>
           </button>
         </div>
       </div>
 
-      {error && <p className="text-sm text-red-600">加载失败：{String(error)}</p>}
+      {error && (
+        <p className="text-sm text-red-600">
+          {t('message.load_failed', { error: String(error) })}
+        </p>
+      )}
 
       {!isLoading && data.length === 0 && (
         <div className="rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-500">
-          暂无进货单，点击右上角「新建进货单」开始。
+          {t('receipt.empty_hint')}
         </div>
       )}
 
       {!isLoading && data.length > 0 && filtered.length === 0 && (
         <div className="rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-500">
-          没有匹配「{emptySummary}」的单据。
+          {t('receipt.no_match', { summary: emptySummary })}
           <button
             onClick={clearFilter}
             className="ml-2 text-slate-700 underline hover:text-slate-900"
           >
-            清除筛选
+            {t('filter.clear_filter')}
           </button>
         </div>
       )}
@@ -189,31 +203,31 @@ export default function ReceiptList({
               className={`grid ${GRID_COLS} bg-slate-100 text-slate-600 text-sm`}
             >
               <div role="columnheader" className="px-3 py-2 text-left">
-                单号
+                {t('receipt.number')}
               </div>
               <div role="columnheader" className="px-3 py-2 text-left">
-                日期
+                {t('receipt.date')}
               </div>
               <div role="columnheader" className="px-3 py-2 text-left">
-                供应商
+                {t('receipt.supplier')}
               </div>
               <div
                 role="columnheader"
                 className="hidden lg:block px-3 py-2 text-right"
               >
-                明细
+                {t('receipt.items_title')}
               </div>
               <div role="columnheader" className="px-3 py-2 text-right">
-                含税 / 净额
+                {t('receipt.column_gross_net')}
               </div>
               <div
                 role="columnheader"
                 className="hidden lg:block px-3 py-2 text-center"
               >
-                备注
+                {t('receipt.remarks')}
               </div>
               <div role="columnheader" className="px-3 py-2 text-center">
-                操作
+                {t('common.actions')}
               </div>
             </div>
 
@@ -230,7 +244,7 @@ export default function ReceiptList({
                     <span className="mr-2 text-slate-400">
                       {expanded ? '▾' : '▸'}
                     </span>
-                    {formatMonthLabel(group.month)} ({group.items.length})
+                    {formatMonthLabel(group.month, i18n.language)} ({group.items.length})
                   </div>
 
                   {expanded &&
@@ -253,21 +267,21 @@ export default function ReceiptList({
                                 : 'border-l-slate-300')
                             }
                           >
-                            <div className="flex items-center gap-1 min-w-0">
+                            <div className="flex items-center gap-1 min-w-0 flex-wrap">
                               <span className="truncate" title={r.receipt_number}>
                                 {r.receipt_number}
                               </span>
                               {isUsed && (
                                 <span
-                                  className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700"
-                                  title="已被销售单引用，无法删除"
+                                  className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 whitespace-nowrap"
+                                  title={t('receipt.used_tooltip')}
                                 >
-                                  已用
+                                  {t('receipt.used')}
                                 </span>
                               )}
                               {r.needs_review === 1 && (
-                                <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
-                                  待核对
+                                <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 whitespace-nowrap">
+                                  {t('receipt.needs_review')}
                                 </span>
                               )}
                             </div>
@@ -299,7 +313,7 @@ export default function ReceiptList({
                               {formatMoney(r.gross_total)} €
                             </div>
                             <div className="text-xs text-slate-500">
-                              净 {formatMoney(r.net_total)} €
+                              {t('receipt.total_net')} {formatMoney(r.net_total)} €
                             </div>
                           </div>
 
@@ -341,7 +355,7 @@ export default function ReceiptList({
                     onClick={() => toggleMonth(group.month)}
                   >
                     <span>
-                      {formatMonthLabel(group.month)} ({group.items.length})
+                      {formatMonthLabel(group.month, i18n.language)} ({group.items.length})
                     </span>
                     <span className="text-slate-400">
                       {expanded ? '▾' : '▸'}
@@ -373,18 +387,18 @@ export default function ReceiptList({
                               }}
                               className="w-full text-left p-3 pr-14 cursor-pointer hover:bg-slate-50 active:bg-slate-100"
                             >
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className="font-medium truncate">
                                   {r.receipt_number}
                                 </span>
                                 {isUsed && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700">
-                                    已用
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 whitespace-nowrap">
+                                    {t('receipt.used')}
                                   </span>
                                 )}
                                 {r.needs_review === 1 && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
-                                    待核对
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 whitespace-nowrap">
+                                    {t('receipt.needs_review')}
                                   </span>
                                 )}
                               </div>
@@ -392,16 +406,17 @@ export default function ReceiptList({
                                 {r.date} · {r.supplier ?? '—'}
                               </div>
                               <div className="text-sm text-slate-700 mt-1">
-                                含税{' '}
+                                {t('receipt.total_gross')}{' '}
                                 <span className="font-medium">
                                   {formatMoney(r.gross_total)} €
                                 </span>
                                 <span className="text-xs text-slate-500 ml-2">
-                                  · 净 {formatMoney(r.net_total)} €
+                                  · {t('receipt.total_net')}{' '}
+                                  {formatMoney(r.net_total)} €
                                 </span>
                               </div>
                               <div className="text-xs text-slate-500 mt-0.5">
-                                {r.item_count} 项
+                                {r.item_count} {t('receipt.items_title')}
                               </div>
                             </div>
                             <div className="absolute top-1 right-1">
@@ -435,13 +450,13 @@ export default function ReceiptList({
 
       <ConfirmDialog
         open={!!deleting}
-        title="删除进货单"
+        title={t('receipt.delete_title')}
         message={
           deleting
-            ? `确定删除进货单「${deleting.receipt_number}」？此操作不可撤销。`
+            ? t('receipt.delete_confirm', { number: deleting.receipt_number })
             : ''
         }
-        confirmLabel="删除"
+        confirmLabel={t('common.delete')}
         danger
         loading={deleteMutation.isPending}
         onConfirm={() => {
@@ -452,7 +467,7 @@ export default function ReceiptList({
 
       {deleteMutation.error && (
         <p className="text-sm text-red-600">
-          删除失败：{String(deleteMutation.error)}
+          {t('receipt.delete_failed', { error: String(deleteMutation.error) })}
         </p>
       )}
     </div>

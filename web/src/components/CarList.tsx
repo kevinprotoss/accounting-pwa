@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { carsApi, type Car } from '../api/cars';
 import { formatMoney } from '../lib/utils';
 import ActionMenu, { type Action } from './ActionMenu';
@@ -15,6 +16,7 @@ type ConfirmState =
   | null;
 
 export default function CarList({ onCreate }: Props) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { data = [], isLoading, error } = useQuery({
     queryKey: ['cars'],
@@ -62,19 +64,19 @@ export default function CarList({ onCreate }: Props) {
     if (c.active === 1) {
       list.push({
         key: 'deactivate',
-        label: '停用',
+        label: t('car.action_deactivate'),
         onSelect: () => setConfirmState({ type: 'deactivate', car: c }),
       });
     } else {
       list.push({
         key: 'reactivate',
-        label: '启用',
+        label: t('car.action_reactivate'),
         onSelect: () => setConfirmState({ type: 'reactivate', car: c }),
       });
     }
     list.push({
       key: 'delete',
-      label: '删除',
+      label: t('common.delete'),
       danger: true,
       onSelect: () => setDeleting(c),
     });
@@ -82,28 +84,30 @@ export default function CarList({ onCreate }: Props) {
   }
 
   function ruleLabel(c: Car) {
-    return c.tax_rule_percent === 0.25 ? '0.25%（电车）' : '1%';
+    return c.tax_rule_percent === 0.25
+      ? t('car.rule_percent_025')
+      : t('car.rule_percent_1');
   }
 
   const confirmTitle =
     confirmState?.type === 'deactivate'
-      ? '停用车辆'
+      ? t('car.deactivate_title')
       : confirmState?.type === 'reactivate'
-      ? '启用车辆'
+      ? t('car.reactivate_title')
       : '';
 
   const confirmMessage =
     confirmState?.type === 'deactivate'
-      ? `停用后不再生成新月份记录，历史记录保留，可随时启用。确定停用「${confirmState.car.license_plate}」？`
+      ? t('car.deactivate_message', { plate: confirmState.car.license_plate })
       : confirmState?.type === 'reactivate'
-      ? `启用后从下个月开始生成记录，停用期间的月份不补。确定启用「${confirmState.car.license_plate}」？`
+      ? t('car.reactivate_message', { plate: confirmState.car.license_plate })
       : '';
 
   const confirmLabel =
     confirmState?.type === 'deactivate'
-      ? '停用'
+      ? t('car.action_deactivate')
       : confirmState?.type === 'reactivate'
-      ? '启用'
+      ? t('car.action_reactivate')
       : '';
 
   const confirmLoading =
@@ -117,32 +121,42 @@ export default function CarList({ onCreate }: Props) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-500">
-          {isLoading ? '加载中…' : `共 ${data.length} 辆车`}
+          {isLoading ? t('common.loading') : t('car.count', { count: data.length })}
         </p>
         <button
           onClick={onCreate}
           className="h-11 px-4 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800"
         >
-          + 添加车辆
+          + {t('car.new')}
         </button>
       </div>
 
-      {error && <p className="text-sm text-red-600">加载失败：{String(error)}</p>}
+      {error && (
+        <p className="text-sm text-red-600">
+          {t('message.load_failed', { error: String(error) })}
+        </p>
+      )}
 
       {!isLoading && data.length === 0 && (
         <div className="rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-500">
-          暂无车辆。点击右上角「添加车辆」录入公司车，用于 1% 或 0.25% 规则计算。
+          {t('car.empty_hint')}
         </div>
       )}
 
       {deleteMutation.error && (
-        <p className="text-sm text-red-600">删除失败：{String(deleteMutation.error)}</p>
+        <p className="text-sm text-red-600">
+          {t('car.delete_failed', { error: String(deleteMutation.error) })}
+        </p>
       )}
       {deactivateMutation.error && (
-        <p className="text-sm text-red-600">停用失败：{String(deactivateMutation.error)}</p>
+        <p className="text-sm text-red-600">
+          {t('car.deactivate_failed', { error: String(deactivateMutation.error) })}
+        </p>
       )}
       {reactivateMutation.error && (
-        <p className="text-sm text-red-600">启用失败：{String(reactivateMutation.error)}</p>
+        <p className="text-sm text-red-600">
+          {t('car.reactivate_failed', { error: String(reactivateMutation.error) })}
+        </p>
       )}
 
       {/* 桌面表格 */}
@@ -150,13 +164,13 @@ export default function CarList({ onCreate }: Props) {
         <table className="min-w-full text-sm">
           <thead className="bg-slate-100 text-slate-600">
             <tr>
-              <th className="px-4 py-2 text-left">车牌号</th>
-              <th className="px-4 py-2 text-right">总价（Brutto）</th>
-              <th className="px-4 py-2 text-left">规则</th>
-              <th className="px-4 py-2 text-left">购车日期</th>
-              <th className="px-4 py-2 text-center">状态</th>
-              <th className="px-4 py-2 text-right">月度记录</th>
-              <th className="px-4 py-2 text-right w-16">操作</th>
+              <th className="px-4 py-2 text-left">{t('car.license_plate')}</th>
+              <th className="px-4 py-2 text-right">{t('car.gross_list_price')}</th>
+              <th className="px-4 py-2 text-left">{t('car.rule')}</th>
+              <th className="px-4 py-2 text-left">{t('car.acquisition_date')}</th>
+              <th className="px-4 py-2 text-center">{t('car.status')}</th>
+              <th className="px-4 py-2 text-right">{t('car.monthly_records')}</th>
+              <th className="px-4 py-2 text-right w-16">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -171,11 +185,11 @@ export default function CarList({ onCreate }: Props) {
                 <td className="px-4 py-2 text-center">
                   {c.active === 1 ? (
                     <span className="text-xs px-1.5 py-0.5 rounded bg-green-100 text-green-700">
-                      在用
+                      {t('car.status_active')}
                     </span>
                   ) : (
                     <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">
-                      已停用
+                      {t('car.status_inactive')}
                     </span>
                   )}
                 </td>
@@ -184,8 +198,12 @@ export default function CarList({ onCreate }: Props) {
                     <span className="text-slate-400">—</span>
                   ) : (
                     <span>
-                      {c.expenses.length} 条 /{' '}
-                      {formatMoney(c.expenses.reduce((s, e) => s + e.amount, 0))} €
+                      {t('car.expense_summary', {
+                        count: c.expenses.length,
+                        total: formatMoney(
+                          c.expenses.reduce((s, e) => s + e.amount, 0)
+                        ),
+                      })}
                     </span>
                   )}
                 </td>
@@ -207,31 +225,34 @@ export default function CarList({ onCreate }: Props) {
                 <span className="font-medium truncate">{c.license_plate}</span>
                 {c.tax_rule_percent === 0.25 && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 shrink-0">
-                    电车
+                    {t('car.electric_badge')}
                   </span>
                 )}
                 {c.active === 1 ? (
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 shrink-0">
-                    在用
+                    {t('car.status_active')}
                   </span>
                 ) : (
                   <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">
-                    已停用
+                    {t('car.status_inactive')}
                   </span>
                 )}
               </div>
               <div className="text-xs text-slate-500 mt-1">
-                总价 {formatMoney(c.gross_list_price)} € · {ruleLabel(c)} · 购车{' '}
-                {c.acquisition_date}
+                {t('car.card_summary', {
+                  price: formatMoney(c.gross_list_price),
+                  rule: ruleLabel(c),
+                  date: c.acquisition_date,
+                })}
               </div>
             </div>
 
             <div className="border-t border-slate-100 px-3 py-2">
               <div className="text-xs font-medium text-slate-600 mb-1">
-                月度记录
+                {t('car.monthly_records')}
               </div>
               {c.expenses.length === 0 ? (
-                <p className="text-xs text-slate-400">暂无月度记录</p>
+                <p className="text-xs text-slate-400">{t('car.no_records')}</p>
               ) : (
                 <ul className="space-y-1">
                   {c.expenses.map((e) => (
@@ -275,13 +296,16 @@ export default function CarList({ onCreate }: Props) {
       {/* 删除确认 */}
       <ConfirmDialog
         open={!!deleting}
-        title="删除车辆"
+        title={t('car.delete_title')}
         message={
           deleting
-            ? `该车已有 ${deleting.expenses.length} 条月度记录，删除后一并移除，不可恢复。确定删除「${deleting.license_plate}」？`
+            ? t('car.delete_message', {
+                count: deleting.expenses.length,
+                plate: deleting.license_plate,
+              })
             : ''
         }
-        confirmLabel="删除"
+        confirmLabel={t('common.delete')}
         danger
         loading={deleteMutation.isPending}
         onConfirm={() => {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { scansApi } from '../api/scans';
 
 type Props = {
@@ -14,8 +15,10 @@ export default function ScanUploadDialog({
   onClose,
   onUploaded,
 }: Props) {
+  const { t } = useTranslation();
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const albumRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,9 +37,9 @@ export default function ScanUploadDialog({
 
   function handleSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files ?? []);
+    e.target.value = '';
     if (selected.length === 0) return;
     setFiles((prev) => [...prev, ...selected]);
-    if (inputRef.current) inputRef.current.value = '';
   }
 
   function removeFile(index: number) {
@@ -45,7 +48,7 @@ export default function ScanUploadDialog({
 
   async function handleUpload() {
     if (files.length === 0) {
-      setError('请先选择图片');
+      setError(t('scan.no_images'));
       return;
     }
     setError(null);
@@ -61,6 +64,11 @@ export default function ScanUploadDialog({
     }
   }
 
+  const title =
+    targetType === 'receipt'
+      ? t('scan.upload_title_receipt')
+      : t('scan.upload_title_expense');
+
   return (
     <dialog
       ref={dialogRef}
@@ -68,38 +76,70 @@ export default function ScanUploadDialog({
       className="w-[90vw] max-w-md m-auto rounded-xl p-0 bg-white text-slate-900 backdrop:bg-black/40"
     >
       <div className="p-4 border-b border-slate-200">
-        <h2 className="text-base font-semibold">
-          扫描{targetType === 'receipt' ? '进货账单' : '支出账单'}
-        </h2>
-        <p className="text-xs text-slate-500 mt-1">
-          支持多张图片，识别完成后自动创建记录
-        </p>
+        <h2 className="text-base font-semibold">{title}</h2>
+        <p className="text-xs text-slate-500 mt-1">{t('scan.upload_hint')}</p>
       </div>
 
       <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-          className="w-full h-24 rounded-lg border-2 border-dashed border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50 flex flex-col items-center justify-center gap-1 disabled:opacity-60"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="w-6 h-6"
+        {/* 两个入口：拍照 / 相册 */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => cameraRef.current?.click()}
+            disabled={uploading}
+            className="h-24 rounded-lg border-2 border-dashed border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50 flex flex-col items-center justify-center gap-1 disabled:opacity-60"
           >
-            <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
-            <circle cx="12" cy="13" r="3" />
-          </svg>
-          <span className="text-sm">选择图片或拍照</span>
-        </button>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-6 h-6"
+            >
+              <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" />
+              <circle cx="12" cy="13" r="3" />
+            </svg>
+            <span className="text-sm">{t('scan.take_photo')}</span>
+          </button>
 
+          <button
+            type="button"
+            onClick={() => albumRef.current?.click()}
+            disabled={uploading}
+            className="h-24 rounded-lg border-2 border-dashed border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50 flex flex-col items-center justify-center gap-1 disabled:opacity-60"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-6 h-6"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+            <span className="text-sm">{t('scan.from_album')}</span>
+          </button>
+        </div>
+
+        {/* 相机：直接唤起后置摄像头，一次一张，不能带 multiple */}
         <input
-          ref={inputRef}
+          ref={cameraRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleSelect}
+        />
+
+        {/* 相册：可多选，不能带 capture */}
+        <input
+          ref={albumRef}
           type="file"
           accept="image/*"
           multiple
@@ -122,7 +162,7 @@ export default function ScanUploadDialog({
                   type="button"
                   onClick={() => removeFile(i)}
                   className="shrink-0 w-6 h-6 flex items-center justify-center rounded text-red-600 hover:bg-red-50"
-                  aria-label="移除"
+                  aria-label={t('common.remove')}
                 >
                   ✕
                 </button>
@@ -141,7 +181,7 @@ export default function ScanUploadDialog({
           disabled={uploading}
           className="h-11 px-4 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100 disabled:opacity-60"
         >
-          取消
+          {t('common.cancel')}
         </button>
         <button
           type="button"
@@ -149,7 +189,9 @@ export default function ScanUploadDialog({
           disabled={uploading || files.length === 0}
           className="h-11 px-4 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-60"
         >
-          {uploading ? '上传中…' : `上传 ${files.length} 张`}
+          {uploading
+            ? t('scan.uploading')
+            : t('scan.upload_count', { count: files.length })}
         </button>
       </div>
     </dialog>

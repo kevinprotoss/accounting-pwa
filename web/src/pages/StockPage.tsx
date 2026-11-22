@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { stockApi, type StockItem } from '../api/stock';
 import { formatMoney } from '../lib/utils';
 
 export default function StockPage() {
+  const { t } = useTranslation();
   const { data = [], isLoading, error } = useQuery({
     queryKey: ['stock'],
     queryFn: () => stockApi.list(),
@@ -41,37 +43,42 @@ export default function StockPage() {
         <div className="flex-1 md:max-w-sm">
           <input
             className={inputClass}
-            placeholder="搜索产品名、供应商、发票号…"
+            placeholder={t('stock.search_placeholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex flex-wrap gap-3 text-sm text-slate-600">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
           <span>
-            批次 <strong className="text-slate-900">{summary.count}</strong>
+            {t('stock.summary_batches', { count: summary.count })}
           </span>
           <span>
-            总剩余 <strong className="text-slate-900">{summary.totalQty}</strong>
+            {t('stock.summary_total_remaining', { qty: summary.totalQty })}
           </span>
           <span>
-            库存价值{' '}
-            <strong className="text-slate-900">{formatMoney(summary.totalValue)} €</strong>
+            {t('stock.summary_stock_value', {
+              value: formatMoney(summary.totalValue),
+            })}
           </span>
         </div>
       </div>
 
-      {isLoading && <p className="text-sm text-slate-500">加载中…</p>}
-      {error && <p className="text-sm text-red-600">加载失败：{String(error)}</p>}
+      {isLoading && <p className="text-sm text-slate-500">{t('common.loading')}</p>}
+      {error && (
+        <p className="text-sm text-red-600">
+          {t('message.load_failed', { error: String(error) })}
+        </p>
+      )}
 
       {!isLoading && data.length === 0 && (
         <div className="rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-500">
-          暂无库存。库存由进货单自动产生，销售后自动扣减。请先在「进货」中录入进货单。
+          {t('stock.empty_hint')}
         </div>
       )}
 
       {!isLoading && data.length > 0 && filtered.length === 0 && (
         <div className="rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-500">
-          没有匹配「{search}」的批次。
+          {t('stock.no_match', { keyword: search })}
         </div>
       )}
 
@@ -81,15 +88,21 @@ export default function StockPage() {
           <table className="min-w-full text-sm">
             <thead className="bg-slate-100 text-slate-600">
               <tr>
-                <th className="px-4 py-2 text-left">产品名</th>
-                <th className="px-4 py-2 text-right">剩余</th>
-                <th className="px-4 py-2 text-right">总量</th>
-                <th className="px-4 py-2 text-right">进货价</th>
-                <th className="px-4 py-2 text-right">税率</th>
-                <th className="px-4 py-2 text-left">进货日期</th>
-                <th className="px-4 py-2 text-left">供应商</th>
-                <th className="px-4 py-2 text-left">供应商发票</th>
-                <th className="px-4 py-2 text-right">剩余价值</th>
+                <th className="px-4 py-2 text-left">{t('stock.product_name')}</th>
+                <th className="px-4 py-2 text-right">{t('stock.remaining')}</th>
+                <th className="px-4 py-2 text-right">{t('stock.total')}</th>
+                <th className="px-4 py-2 text-right">
+                  {t('stock.purchase_price')}
+                </th>
+                <th className="px-4 py-2 text-right">{t('stock.tax_rate')}</th>
+                <th className="px-4 py-2 text-left">{t('stock.receipt_date')}</th>
+                <th className="px-4 py-2 text-left">{t('stock.supplier')}</th>
+                <th className="px-4 py-2 text-left">
+                  {t('stock.supplier_invoice')}
+                </th>
+                <th className="px-4 py-2 text-right">
+                  {t('stock.remaining_value')}
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -99,8 +112,12 @@ export default function StockPage() {
                   <td className="px-4 py-2 text-right font-medium text-slate-900">
                     {s.remaining_qty}
                   </td>
-                  <td className="px-4 py-2 text-right text-slate-500">{s.received_qty}</td>
-                  <td className="px-4 py-2 text-right">{formatMoney(s.purchase_price)} €</td>
+                  <td className="px-4 py-2 text-right text-slate-500">
+                    {s.received_qty}
+                  </td>
+                  <td className="px-4 py-2 text-right">
+                    {formatMoney(s.purchase_price)} €
+                  </td>
                   <td className="px-4 py-2 text-right">{s.tax_rate}%</td>
                   <td className="px-4 py-2">{s.receipt_date}</td>
                   <td className="px-4 py-2">{s.supplier ?? '—'}</td>
@@ -119,25 +136,33 @@ export default function StockPage() {
       {filtered.length > 0 && (
         <ul className="md:hidden space-y-2">
           {filtered.map((s) => (
-            <li key={s.receipt_item_id} className="rounded-lg border border-slate-200 bg-white p-3">
+            <li
+              key={s.receipt_item_id}
+              className="rounded-lg border border-slate-200 bg-white p-3"
+            >
               <div className="font-medium truncate">{s.product_name}</div>
               <div className="text-xs text-slate-500 mt-1">
-                剩余 <span className="font-medium text-slate-900">{s.remaining_qty}</span>
-                {' / '}总量 {s.received_qty}
+                {t('stock.remaining')}{' '}
+                <span className="font-medium text-slate-900">
+                  {s.remaining_qty}
+                </span>
+                {' / '}
+                {t('stock.total')} {s.received_qty}
               </div>
               <div className="text-xs text-slate-500 mt-0.5">
-                进货价 {formatMoney(s.purchase_price)} € · 税率 {s.tax_rate}%
+                {t('stock.purchase_price')} {formatMoney(s.purchase_price)} € ·{' '}
+                {t('stock.tax_rate')} {s.tax_rate}%
               </div>
               <div className="text-xs text-slate-500 mt-0.5 truncate">
                 {s.receipt_date} · {s.supplier ?? '—'}
               </div>
               {s.supplier_invoice && (
                 <div className="text-xs text-slate-500 mt-0.5 truncate">
-                  发票 {s.supplier_invoice}
+                  {t('stock.supplier_invoice')} {s.supplier_invoice}
                 </div>
               )}
               <div className="text-xs text-slate-700 mt-1">
-                剩余价值{' '}
+                {t('stock.remaining_value')}{' '}
                 <span className="font-medium">
                   {formatMoney(s.remaining_qty * s.purchase_price)} €
                 </span>

@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { carsApi, type CarInput } from '../api/cars';
 import { formatMoney } from '../lib/utils';
 
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export default function CarForm({ onClose, onSaved }: Props) {
+  const { t } = useTranslation();
   const [licensePlate, setLicensePlate] = useState('');
   const [grossListPrice, setGrossListPrice] = useState('');
   const [acquisitionDate, setAcquisitionDate] = useState('');
@@ -28,11 +30,11 @@ export default function CarForm({ onClose, onSaved }: Props) {
     e.preventDefault();
     setError(null);
     if (!licensePlate.trim()) {
-      setError('请填写车牌号');
+      setError(t('car.license_plate_required'));
       return;
     }
     if (!acquisitionDate) {
-      setError('请填写购车日期');
+      setError(t('car.acquisition_date_required'));
       return;
     }
     saveMutation.mutate({
@@ -48,7 +50,7 @@ export default function CarForm({ onClose, onSaved }: Props) {
   return (
     <div className="fixed inset-0 z-40 bg-slate-50 flex flex-col md:left-56">
       <header className="shrink-0 bg-white border-b border-slate-200 px-4 py-3">
-        <h2 className="text-base font-semibold">添加车辆</h2>
+        <h2 className="text-base font-semibold">{t('car.new')}</h2>
       </header>
 
       <form id="car-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
@@ -56,7 +58,7 @@ export default function CarForm({ onClose, onSaved }: Props) {
           <div className="rounded-lg border border-slate-200 bg-white p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
             <label className="block">
               <span className="block text-xs font-medium text-slate-600 mb-1">
-                车牌号 *
+                {t('car.license_plate')} *
               </span>
               <input
                 className={inputClass}
@@ -67,7 +69,7 @@ export default function CarForm({ onClose, onSaved }: Props) {
             </label>
             <label className="block">
               <span className="block text-xs font-medium text-slate-600 mb-1">
-                总价（Brutto）*
+                {t('car.gross_list_price')} *
               </span>
               <input
                 type="number"
@@ -81,7 +83,7 @@ export default function CarForm({ onClose, onSaved }: Props) {
             </label>
             <label className="block">
               <span className="block text-xs font-medium text-slate-600 mb-1">
-                购车日期 *
+                {t('car.acquisition_date')} *
               </span>
               <input
                 type="date"
@@ -94,7 +96,9 @@ export default function CarForm({ onClose, onSaved }: Props) {
           </div>
 
           <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-slate-700">1% 规则</h3>
+            <h3 className="text-sm font-semibold text-slate-700">
+              {t('car.rule_section')}
+            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <label
                 className={
@@ -113,9 +117,11 @@ export default function CarForm({ onClose, onSaved }: Props) {
                   className="mt-0.5"
                 />
                 <div>
-                  <div className="text-sm font-medium text-slate-800">1% 规则</div>
+                  <div className="text-sm font-medium text-slate-800">
+                    {t('car.rule_1')}
+                  </div>
                   <div className="text-xs text-slate-500 mt-0.5">
-                    燃油车、普通混动车
+                    {t('car.rule_1_hint')}
                   </div>
                 </div>
               </label>
@@ -137,10 +143,10 @@ export default function CarForm({ onClose, onSaved }: Props) {
                 />
                 <div>
                   <div className="text-sm font-medium text-slate-800">
-                    0.25% 规则（电车）
+                    {t('car.rule_025')}
                   </div>
                   <div className="text-xs text-slate-500 mt-0.5">
-                    纯电车，适用 §6 Abs. 1 Nr. 4 S. 2 EStG
+                    {t('car.rule_025_hint')}
                   </div>
                 </div>
               </label>
@@ -149,14 +155,13 @@ export default function CarForm({ onClose, onSaved }: Props) {
 
           <div className="rounded-lg border border-slate-200 bg-white p-4">
             <div className="text-xs font-medium text-slate-500">
-              月度应税额（完整月）
+              {t('car.monthly_tax_label')}
             </div>
             <div className="text-2xl font-bold text-slate-900 mt-1">
               {formatMoney(monthlyTax)} €
             </div>
             <p className="text-xs text-slate-500 mt-2">
-              仅当车辆在自然月内完整使用（月初已购、月末未停）时生成记录。
-              购车当月若非 1 号、停用月、启用后首月均不生成。
+              {t('car.monthly_tax_hint')}
             </p>
           </div>
 
@@ -171,7 +176,7 @@ export default function CarForm({ onClose, onSaved }: Props) {
             onClick={onClose}
             className="flex-1 md:flex-none md:min-w-[100px] h-11 px-4 text-sm rounded-md border border-slate-300 text-slate-700 hover:bg-slate-100"
           >
-            取消
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
@@ -179,7 +184,7 @@ export default function CarForm({ onClose, onSaved }: Props) {
             disabled={saveMutation.isPending}
             className="flex-1 md:flex-none md:min-w-[100px] h-11 px-4 text-sm rounded-md bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-60"
           >
-            {saveMutation.isPending ? '保存中…' : '保存'}
+            {saveMutation.isPending ? t('common.saving') : t('common.save')}
           </button>
         </div>
       </footer>
